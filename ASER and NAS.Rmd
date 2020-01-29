@@ -1,0 +1,119 @@
+---
+title: "R Notebook"
+output: html_notebook
+root.dir: "C:/Users/dougj/Documents/Data/Education/"
+---
+
+# Replicate Andres's NAS vs ASER scatterplot
+This notebook compares ASER 2018 data with NAS 2017 data.  ASER and NAS differ in both sampling and the assessment tool used. I provide a brief recap of ASER and NAS and then discuss what data is used for this comparison. The ASER Centre has put together a good comparison of the two surveys [here](https://img.asercentre.org/docs/Bottom%20Panel/Key%20Docs/nas_stdvvs_aser.pdf)
+
+## ASER
+1. Frequency
+    1. Basic survey conducted every other year
+2. Sampling
+    1. Only rural areas covered
+    2. In each rural district, 30 villages are selected using PPS.  In each village, 20 households are selected using the right-hand rule
+    3. Survey is conducted at home rather than in school. Thus, results not affected by enrollment / attendance.
+    4. All children 5-16 years old, regardless of school enrollment, are administered the assessment. (In addition, data on enrollment is collected for 3 and 4 year olds
+3. Data collected
+    1. Assessment tests basic reading and math.  
+        a. Read levels are not even letters, letters, word, std 1 text, std 2 text
+        b. Math levels are not even 1-9, 1-9 numbers, 10-99 numbers, substract, and divide
+    2. Basic household details and school attendance (e.g. whether public or private) also collected
+4. Other
+    1. ASER is carried out through local partners who rely on volunteers
+    2. There are some internal and third party checks, but these seem to be pretty minimal
+    3. The assessment is administered one-on-one by the enumerators who read out the questions to the child being assessed.
+    4. ASER uses weights when calculating state and national figures
+
+
+## NAS
+NCERT has been conducting NAS since 2001 but in previous years they only collected data for a single grade at a time. (For example, they collected data for class 5 in academic year 2001-02, for class 8 in academic year 2002-03, and for class 3 in academic year 2003-04.  See [here](http://www.ncert.nic.in/programmes/NAS/pdf/DRC_report.pdf) page 6 for more info.) In addition, the sample sizes in previous years were smaller (they were only intended to be representative at the state level) and the assessment tool used was different. 
+
+
+1. Frequency
+    1. Previous versions of the NAS were carried out every year.  There has only been one instance in which NAS has been carried out in its current form (in 2017)
+2. Sampling
+    1. Schools are selected from UDISE using PPS (according to the ASER note on the NAS)
+    2. Only government schools (and maybe private aided - not sure) included
+    2. Grades 3, 5, and 8 covered
+3. Data collected
+    1. Test language, math, and environmental science
+    2. Seems like they also collect basic data about the school
+4. Other
+    1. Paper and pencil test
+    2. Estimates are not weighted (actual enrollment varied quite a bit from figures in USIDE so ideally should have used weights
+    
+## Comparing ASER and NAS
+The data and code below is from Andres Parrado.  Andres manually copied ASER data from the ASER 2018 report and NAS data from [here](http://nas.schooleduinfo.in/dashboard/nas_ncert#/).  To make the data as comparable as possible...
+
+* ASER data is for class 3 students able to read a standard 2 text. Only government school students are included.
+* NAS data is only for rural areas for class 3 students. (The website above breaks down results for rural / urban). The NAS language assessment for class 3 tests competencies L312 and L304. L304 is "Reads small texts with comprehension i.e., identifies main ideas, details, sequence and draws conclusion". L312 is "Reads printed scripts on the classroom walls: poems, posters, charts etc". Unclear how the two data points are combined.
+
+Note that even with these corrections, there are still a lot of ways in which ASER and NAS differ. The biggest difference is that ASER is representative of all children enrolled in govt schools while NAS is representative only of children who showed up on the day of the assessment.  In addition, the assessment itself varies quite a bit. (And the ASER exam suggests that the pen and paper exam )
+
+
+```{r}
+library(tidyverse)
+library(ggrepel)
+
+### Rank comparison
+setwd("C:/Users/dougj/Documents/Data/Education")
+main_data <- read_csv("ASER 2018 and NAS 2017 grade 3 reading.csv")
+ggplot(data = main_data,aes(x=aser_rank,y=nas_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
+  geom_abline(intercept = -6, slope = 1, color="gray", lwd=1, lty=2) +
+  geom_abline(intercept = 6, slope = 1, color="gray", lwd=1, lty=2) +
+  geom_point(color="darkblue")  +
+  theme_bw() + labs(title="State Rankings Based on Language Results for Std III Students (Rural)", 
+                    x = "Rank in ASER (2018)", y = "Rank in NAS (2017)") + 
+   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
+   panel.grid.major =   element_line(colour = "gray",size=0.1)) + geom_label_repel() 
+
+# ggsave("aser_nas_lang_ranking.png", width = 9, height = 6)
+
+```
+
+## Plot NAS vs GDP per capita
+Given the huge variation in state GDP per capita, one would expect that there would be some correlation in GPD per capita and learning outcomes. Surprisingly, this is not the case.
+
+```{r}
+setwd("C:/Users/dougj/Documents/Data/Education")
+gdp <- read_csv("state GDP per capita.csv")
+df <- main_data %>% left_join(gdp, by = "State")
+print(paste("Number of unmatched states", sum(is.na(df$`NSDP per capita`))))
+df$gdp_rank <- NA
+df$gdp_rank[order(df$`NSDP per capita`, decreasing = TRUE)] <- 1:nrow(df)
+
+ggplot(data = df,aes(x= gdp_rank,y=nas_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
+  geom_point(color="darkblue")  +
+  theme_bw() + labs(title="NAS vs GDP", 
+                    x = "GDP rank", y = "Rank in NAS (2017)") + 
+   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
+   panel.grid.major =   element_line(colour = "gray",size=0.1)) + geom_label_repel() 
+
+
+```
+## Plot ASER vs GDP per capita
+Again, there seems to be 
+```{r}
+ggplot(data = df,aes(x= gdp_rank,y=aser_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
+  geom_point(color="darkblue")  +
+  theme_bw() + labs(title="ASER vs GDP", 
+                    x = "GDP rank", y = "Rank in ASER (2018)") + 
+   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
+   panel.grid.major =   element_line(colour = "gray",size=0.1)) + geom_label_repel() 
+
+```
+
+## Plot ASER and NAS on same scale
+While ASER and NAS use different assessments, based on their descriptions it seems like the reading components of each assessment seeks to measure about the same thing. Therefore, it is useful to compare the average scores (as opposed to ranks) of each assessment for each state.
+
+```{r}
+df.long <- df %>% select(State, ASER, NAS) %>%
+  gather(assessment, avg_score, -State)
+ggplot(data = df.long, aes(x= State,y=avg_score, fill= assessment)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme(axis.text.x = element_text(angle=90))
+```
+
+
