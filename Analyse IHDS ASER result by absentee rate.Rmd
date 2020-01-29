@@ -1,0 +1,109 @@
+---
+title: "Analyse ASER results by absentee rate"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+Load necessary packages in setup chunk.
+```{r setup}
+library(tidyverse)
+library(haven)
+```
+
+Import just the variables we need from the IHDS 2012 DS0001 dataset.
+```{r}
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
+# read in just those variables that i need
+# this is much faster than reading in everything and then selecting
+df <- read_dta(ind_file, col_select = c(STATEID, PSUID, URBAN2011, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, starts_with("CS"), starts_with("TA"), starts_with("ED")) )
+```
+
+Inspect the CS13 variable which is self-reported number of days absent from school each month. Only look at observations for which we have ASER score and the child attends a govt or govt aided school.
+```{r}
+attributes(df$CS13)
+# simple tab of CS13 --> note that the max value is 30.
+df %>% filter(!is.na(TA8B)) %>%
+  filter(CS4 == 2 | CS4 == 3) %>%
+  group_by(CS13) %>% 
+  count()
+
+# check that this is not missing for kids with ASER results --> looks like there are only a few NAs
+df %>% filter(!is.na(TA8B)) %>% summarise(non_na_count = sum(!is.na(CS13)), na_count = sum(is.na(CS13)) )
+```
+
+Compare average ASER score for different levels of absence for kids attending govt schools. The graph seems to be a little all over the place, but there are very few instances where absence was greater than 10 so it makes more sense to focus on the average ASER scores when days_absent <= 10.  In this area of the graph, it seems like absence is negatively correlated with ASER score.
+
+```{r}
+temp <- df %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
+  filter(CS4 == 2 | CS4 == 3) %>%
+  group_by(CS13) %>% 
+  summarise(ASER_score = weighted.mean(TA8B, WT)) %>% 
+  ungroup() %>%
+  rename(days_absent = CS13)
+ggplot(temp, aes(x = days_absent, y = ASER_score)) + geom_line()
+temp <- df %>% mutate(days_absent_capped = ifelse(CS13 > 10, 10, CS13)) %>% 
+  filter(!is.na(TA8B) & !is.na(days_absent_capped))
+# check that this worked
+temp %>% group_by(days_absent_capped) %>% count()
+
+# the graph below shows the relative frequency of different ASER scores by # days absent
+# note that 10 could be 10 or greater as I have replaced all values of CS13>10 with 10
+ggplot(temp, aes(factor(TA8B), group = factor(days_absent_capped))) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count", fill = "gray") + 
+  scale_y_continuous(labels=scales::percent) +
+  ylab("relative frequencies") +
+  xlab("ASER reading score") +
+  facet_grid(~factor(days_absent_capped))
+```
+
+Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural govt school or private aided (CS4 == 3 | CS4 ==4) students in grade 3 by state. 
+
+```{r}
+# confirm that TA4 (class) is not NA if TA8B is not NA --> there are only 38 instances when TA8B is not NA but TA4 is NA
+df %>% filter(!is.na(TA8B)) %>% count(TA4)
+
+df$URB
+# note that i am including classes 2 to 5. 
+ihds_scores <- df %>% filter(!is.na(TA8B)) %>% 
+  filter(CS4 == 2 | CS4 == 3) %>%
+  filter(TA4 >= 2 & TA4 <= 5) %>%
+  filter(URBAN2011 == 0) %>%
+  mutate(ASER4 = (TA8B ==4)) %>%
+  mutate(State = as_factor(STATEID)) %>%
+  group_by(State) %>%
+  summarise(IHDS_ASER = weighted.mean(ASER4, WT), obs = n())
+
+ihds_scores$State <- sub("...$", "", ihds_scores$State)
+ihds_scores$IHDS_ASER[ihds_scores$obs < 50] <- NA
+
+# replace Orissa with Odisha in state 
+ihds_scores$State[ihds_scores$State == "Orissa"] <- "Odisha"
+ihds_scores$IHDS_ASER <- round(ihds_scores$IHDS_ASER, 3)*100
+
+```
+
+Compare ASER, NAS, and IHDS scores
+
+
+```{r}
+ed_dir <- ("C:/Users/dougj/Documents/Data/Education")
+aser_nas_path <- file.path(ed_dir, "ASER 2018 and NAS 2017 grade 3 reading.csv")
+aser_nas <- read_csv(aser_nas_path)
+scores <- aser_nas %>% full_join(ihds_scores, by = "State")
+
+# drop if IHDS_ASER is NA
+scores <- scores %>% filter(!is.na(IHDS_ASER)) %>% arrange(ASER) %>% select(State, ASER, IHDS_ASER, NAS, obs)
+
+# calculate correlation matrix --> while there are a few outliers, overall the ASER data and IHDS data match Ok
+temp <- scores %>% select(ASER, IHDS_ASER, NAS)
+cor(temp, method = "pearson")
+cor(temp, method = "spearman")
+
+
+```
+
+
