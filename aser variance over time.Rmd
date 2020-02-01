@@ -1,0 +1,156 @@
+---
+title: "ASER variance over time"
+output: html_notebook
+---
+
+## Summary
+Estimate the proportion of ASER data which is noise by looking at autocorrelation of year to year changes in ASER state and district scores.
+
+## Using autocorrelation to decompose variance
+Kaine and Staiger (2002) point out that if there is a lot of noise in test scores then we would expect that a change in the score from one year to the next would likely revert back to the prior level in the next year. In footnote 7, they point out that if aser scores, $y_t$ are iid then in the extreme the autocorrelation of the changes would be -0.5.
+
+$$ corr(y_t-y_{t-1},y_{t-1}-y_{t-2}) =  \frac{-\sigma_y^2}{2\sigma_y^2} =-0.5$$
+
+If we assume that $y_t=\alpha+v_t+\varepsilon_t; v_t=v_{t-1}+u_t$ i.e. that the test scores have a fixed component $\alpha$, a persistent component $v_t$ which follows a random walk, and a noise component $\varepsilon$, then...
+
+
+$$ -2*corr(y_t-y_{t-1},y_{t-1}-y_{t-2}) =  \frac{2\sigma_{\varepsilon}^2}{(\sigma_u^2+2\sigma_{\varepsilon}^2)} $$
+Which is also the proportion of the total variance in the deltas accounted for by the noise component.
+
+## Theoretical sampling noise for district deltas
+The Wadhwa and ? paper mentions that the SE  for the state averages is < 1 ppt (for the 10 or so states they look at). If we assume that the ICC of scores within villages is about .067 (which is the value we get from IHDS, see other notebook), and the proportion p is about 50%, then the SE of the delta should be about .05.
+
+$$ d = 1+(m-1)\rho \approx 1+(30-1)*.067=3$$
+
+$$ \sigma_y^2=\frac{p*(1-p)}{600}\approx \frac{.25}{600}$$ 
+
+$$ \sigma_{\Delta}=\sqrt{2d*\sigma_y^2} \approx .05 $$
+
+
+
+```{r setup}
+library(tidyverse)
+```
+
+
+## Disrtict analysis
+Import district data
+
+```{r}
+path <- "C:/Users/dougj/Documents/Data/Education/ASER District Data/Clean"
+dists <- read_csv(file.path(path, "aser_district_partial.csv"))
+```
+
+Plot line graphs for districts std35_std1 for districts in Andhra to get a feel for the data.
+
+```{r}
+state <- sample(unique(dists$State),1)
+one_state <- dists %>% filter(State == state)
+ggplot(one_state, aes(x = year, y = std12_letters_and_up, color = District)) +
+  geom_line(size = 1.5) + ylim(c(50,100)) 
+```
+
+Estimate average autocorrelation of district deltas.
+
+```{r}
+# Create variable for year on year change for each district
+dist_deltas <- dists %>% 
+  group_by(State, District) %>% 
+  mutate(delta_letters = std12_letters_and_up - lag(std12_letters_and_up), delta_nums = std12_numbers_and_up - lag(std12_numbers_and_up)) %>%
+  mutate(delta_letters_lagged = lag(delta_letters)) %>%
+  arrange(State, District, year)
+
+# Check that changes in letters and numbers is correlated -- they are
+dist_deltas %>% filter(year != 2006) %>% ungroup() %>%
+  summarize(cor(delta_letters,delta_nums))
+
+# Calculate average autocorrelation of delta_letters
+dist_deltas %>% 
+  filter(year >= 2008) %>% 
+  summarise(auto = cor(delta_letters, delta_letters_lagged)) %>%
+  ungroup() %>%
+  summarise(mean_auto=mean(auto))
+
+```
+
+Histogram of deltas with normal curve with standard distribution of .05 overlaid on top. 
+
+```{r}
+ggplot(dist_deltas, aes(x=delta_letters))+
+  stat_function(fun = dnorm, args = list(mean=0, sd = 5), col = "red")+
+  geom_density()
+```
+
+## State analysis 
+Import state data
+```{r}
+path <- "C:/Users/dougj/Documents/Data/Education/ASER trends over time"
+states <- read_csv(file.path(path, "aser_trends.csv")) %>% select(year, State, std3_reading, std3_math)
+```
+
+Graph ASER reading scores over time for the 5 largest states. 
+
+```{r}
+# selected_states <- sample(unique(states$state),5)
+# random_5 <- states %>% filter(State %in% selected_states)
+
+top_5 <- c("uttarpradesh", "maharashtra", "bihar", "westbengal", "madhyapradesh", "andhrapradesh")
+top_5_df <- states %>% filter(State %in% top_5)
+ggplot(top_5_df, aes(x = year, y = std3_reading, color = State)) +
+  geom_line()
+```
+
+
+Estimate average autocorrelation of state deltas.
+
+```{r}
+# Create variable for year on year change for each district
+state_deltas <- states %>% 
+  group_by(State) %>% 
+  mutate(delta_reading = std3_reading - lag(std3_reading), delta_math = std3_math - lag(std3_math)) %>%
+  mutate(delta_reading_lagged = lag(delta_reading)) %>%
+  arrange(State, year)
+
+# Check that changes in letters and numbers is correlated -- they are highly correlated
+state_deltas %>% filter(year >= 2008) %>% ungroup() %>%
+  summarize(cor(delta_reading,delta_math, use = "pairwise.complete.obs"))
+
+# Calculate average autocorrelation of delta_letters
+state_deltas %>% 
+  filter(year >= 2008) %>% 
+  summarise(auto = cor(delta_reading, delta_reading_lagged, use = "pairwise.complete.obs")) %>%
+  ungroup() %>%
+  summarise(mean_auto=mean(auto))
+
+# Calculate correlation betwen delta letters and delta letters lagged for entire dataset (without first calculating for each state and then averaging).
+# this should be about the same as when we first calculate for each state and then average --> which it is.
+state_deltas %>% filter(year >= 2008) %>%
+  ungroup() %>%
+  summarize(auto =cor(delta_reading,delta_reading_lagged, use = "pairwise.complete.obs"))
+
+```
+
+Estimate autocorrelation of state levels. Note that here we calculate the overall correlation for the full dataset rather than first calculate for each state and then average. Calculating for each state independently kind of has the same effect as if we first subtracted the state means which is not what we want to do.
+
+Note that this shows that levels are highly autocorrelated. 
+
+```{r}
+states %>% group_by(State) %>% mutate(reading_lagged = lag(std3_reading)) %>%
+  ungroup() %>%
+  summarize(auto = cor(std3_reading, reading_lagged, use = "pairwise.complete.obs")) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

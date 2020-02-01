@@ -1,10 +1,10 @@
 ---
-title: "R Notebook"
+title: "Compare ASER, NAS, and IHDS"
 output: html_notebook
 root.dir: "C:/Users/dougj/Documents/Data/Education/"
 ---
 
-# Replicate Andres's NAS vs ASER scatterplot
+# Summary
 This notebook compares ASER 2018 data with NAS 2017 data.  ASER and NAS differ in both sampling and the assessment tool used. I provide a brief recap of ASER and NAS and then discuss what data is used for this comparison. The ASER Centre has put together a good comparison of the two surveys [here](https://img.asercentre.org/docs/Bottom%20Panel/Key%20Docs/nas_stdvvs_aser.pdf)
 
 ## ASER
@@ -52,14 +52,19 @@ The data and code below is from Andres Parrado.  Andres manually copied ASER dat
 
 Note that even with these corrections, there are still a lot of ways in which ASER and NAS differ. The biggest difference is that ASER is representative of all children enrolled in govt schools while NAS is representative only of children who showed up on the day of the assessment.  In addition, the assessment itself varies quite a bit. (And the ASER exam suggests that the pen and paper exam )
 
+```{r setup}
+library(tidyverse)
+path <- "C:/Users/dougj/Documents/Data/Education"
+```
+
+
 
 ```{r}
-library(tidyverse)
+
 library(ggrepel)
 
 ### Rank comparison
-setwd("C:/Users/dougj/Documents/Data/Education")
-main_data <- read_csv("ASER 2018 and NAS 2017 grade 3 reading.csv")
+main_data <- read_csv(file.path(path, "ASER 2018 and NAS 2017 grade 3 reading.csv"))
 ggplot(data = main_data,aes(x=aser_rank,y=nas_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
   geom_abline(intercept = -6, slope = 1, color="gray", lwd=1, lty=2) +
   geom_abline(intercept = 6, slope = 1, color="gray", lwd=1, lty=2) +
@@ -105,15 +110,123 @@ ggplot(data = df,aes(x= gdp_rank,y=aser_rank,label= State)) + geom_abline(interc
 
 ```
 
-## Plot ASER and NAS on same scale
+## ASER, NAS, and IHDS on same scale
 While ASER and NAS use different assessments, based on their descriptions it seems like the reading components of each assessment seeks to measure about the same thing. Therefore, it is useful to compare the average scores (as opposed to ranks) of each assessment for each state.
 
+### calculate IHDS scores by state. 
+Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural govt school or private aided (CS4 == 3 | CS4 ==4) students in grade 3 by state. *warning: this code takes a long time* 
+
 ```{r}
-df.long <- df %>% select(State, ASER, NAS) %>%
-  gather(assessment, avg_score, -State)
-ggplot(data = df.long, aes(x= State,y=avg_score, fill= assessment)) + 
-  geom_bar(stat = "identity", position = "dodge") + 
-  theme(axis.text.x = element_text(angle=90))
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
+# read in just those variables that i need
+# this is much faster than reading in everything and then selecting
+ihds <- read_dta(ind_file, col_select = c(STATEID, DISTID, PSUID, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, URBAN2011, starts_with("CS"), starts_with("TA"), starts_with("ED")))
+ihds <- ihds %>% mutate(psu_expanded = paste(STATEID, DISTID, PSUID, sep ="-"), hh_expanded = paste(STATEID, DISTID, PSUID, HHID, HHSPLITID, sep ="-"))
+
+# confirm that TA4 (class) is not NA if TA8B is not NA --> there are only 38 instances when TA8B is not NA but TA4 is NA
+ihds %>% filter(!is.na(TA8B)) %>% count(TA4)
+
+# drop the one row with missing values for weights
+ihds <- ihds %>% filter(!is.na(WT))
+
+# create variable for ASER at level 4
+ihds <- ihds %>% mutate(ASER4 = (TA8B ==4)) %>% mutate(State = as_factor(STATEID))
+ihds_svy <- svydesign(id =~ psu_expanded + hh_expanded, weights =~ WT, data = ihds)
+
+# use statsby to get the % of selected kids who achieve level 4 on ASER reading by state
+# note that I am not sure if subsetting within statsby is kosher, but the standard errors should be ok 
+# more or less ok regardless
+ihds_scores <- svyby(~ASER4, ~State, subset(ihds_svy, !is.na(TA8B) & (CS4 == 2 | CS4 == 3) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0)), svymean, na.rm=TRUE)
+ihds_scores <- as.tibble(ihds_scores) %>% select(State, ASER4TRUE, se.ASER4TRUE) %>% rename(ihds = ASER4TRUE, ihds_se = se.ASER4TRUE)
+
+
+# OLD CODE WHICH DOESN'T INCLUDE STANDARD ERRORS
+# ihds_scores <- ihds %>% filter(!is.na(TA8B)) %>% 
+#   filter(CS4 == 2 | CS4 == 3) %>%
+#   filter(TA4 >= 2 & TA4 <= 5) %>%
+#   filter(URBAN2011 == 0) %>%
+#   mutate(ASER4 = (TA8B ==4)) %>%
+#   mutate(State = as_factor(STATEID)) %>%
+#   group_by(State) %>%
+#   summarise(IHDS_ASER = weighted.mean(ASER4, WT), obs = n())
+
+ihds_scores$State <- sub("...$", "", ihds_scores$State)
+ihds_scores$ihds[ihds_scores$ihds_se == 0] <- NA
+
+# replace Orissa with Odisha in state 
+ihds_scores$State[ihds_scores$State == "Orissa"] <- "Odisha"
+ihds_scores$ihds <- round(ihds_scores$ihds, 3)*100
+
 ```
 
+Merge IHDS with ASER and NAS, calcuate correlations 
 
+```{r}
+aser_nas <- main_data %>% select(State, ASER, NAS)
+scores <- aser_nas %>% full_join(ihds_scores, by = "State")
+
+# drop if IHDS_ASER is NA
+# scores <- scores %>% filter(!is.na(IHDS_ASER)) %>% arrange(ASER) %>% select(State, ASER, IHDS_ASER, NAS, obs)
+
+# calculate correlation matrix --> while there are a few outliers, overall the ASER data and IHDS data match Ok
+# note that 
+temp <- scores %>% select(ASER, ihds, NAS)
+cor(temp, method = "pearson", use = "pairwise.complete.obs")
+cor(temp, method = "spearman", use = "pairwise.complete.obs")
+
+```
+
+Create graph showing IHDS, ASER, and NAS all on same scale.
+
+```{r}
+
+scores.long <- scores %>% select(State, ASER, NAS, ihds) %>%
+  rename(IHDS = ihds) %>%
+  filter(!is.na(ASER) & !is.na(NAS)) %>%
+  gather(Assessment, avg_score, -State) 
+
+ggplot(data = scores.long, aes(x= reorder(State, avg_score),y=avg_score, fill= Assessment)) + 
+  geom_bar(stat = "identity", position = position_dodge(width=.8)) + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_manual(values = c("lightblue", "blue", "darkblue"))+
+  labs(y = "Average score", x = "")
+
+```
+
+Attempt to create the same bar but with standard errors for IHDS. 
+
+
+```{r}
+# treat the SE as just another score
+scores.long2 <- scores  %>%
+  filter(!is.na(ASER) & !is.na(NAS)) %>% 
+  mutate(IHDS = paste(ihds,ihds_se, sep ="-")) %>% 
+  select(State, ASER, NAS, IHDS) %>% 
+  gather(Assessment, avg_score, -State) %>%
+  separate(avg_score, sep = "-", into = c("avg_score","se"))
+
+# convert avg_score and se back to numeric 
+scores.long2 <- scores.long2  %>%
+  mutate(avg_score = as.numeric(avg_score), se = as.numeric(se))
+
+# multiply se 
+scores.long2 <- scores.long2  %>%
+  mutate(se = 100*se)
+
+
+# create y_min and y_max
+m <- qnorm(1-.05/2)
+scores.long2 <- scores.long2  %>%
+  mutate(ymin = avg_score-m*se, ymax = avg_score+m*se) %>%
+  mutate(ymin = ifelse(ymin <0, 0, ymin))
+
+
+ggplot(data = scores.long2, aes(x= reorder(State, avg_score),y=avg_score, fill= Assessment)) + 
+  geom_bar(stat = "identity", position = position_dodge(width=.8)) + 
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = .1) + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_manual(values = c("lightblue", "blue", "darkblue"))+
+  labs(y = "Average score", x = "")
+
+```

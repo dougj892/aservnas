@@ -1,9 +1,9 @@
 ---
 title: "Analyse ASER results by absentee rate"
 output:
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
   pdf_document: default
 ---
 
@@ -59,51 +59,4 @@ ggplot(temp, aes(factor(TA8B), group = factor(days_absent_capped))) +
   xlab("ASER reading score") +
   facet_grid(~factor(days_absent_capped))
 ```
-
-Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural govt school or private aided (CS4 == 3 | CS4 ==4) students in grade 3 by state. 
-
-```{r}
-# confirm that TA4 (class) is not NA if TA8B is not NA --> there are only 38 instances when TA8B is not NA but TA4 is NA
-df %>% filter(!is.na(TA8B)) %>% count(TA4)
-
-df$URB
-# note that i am including classes 2 to 5. 
-ihds_scores <- df %>% filter(!is.na(TA8B)) %>% 
-  filter(CS4 == 2 | CS4 == 3) %>%
-  filter(TA4 >= 2 & TA4 <= 5) %>%
-  filter(URBAN2011 == 0) %>%
-  mutate(ASER4 = (TA8B ==4)) %>%
-  mutate(State = as_factor(STATEID)) %>%
-  group_by(State) %>%
-  summarise(IHDS_ASER = weighted.mean(ASER4, WT), obs = n())
-
-ihds_scores$State <- sub("...$", "", ihds_scores$State)
-ihds_scores$IHDS_ASER[ihds_scores$obs < 50] <- NA
-
-# replace Orissa with Odisha in state 
-ihds_scores$State[ihds_scores$State == "Orissa"] <- "Odisha"
-ihds_scores$IHDS_ASER <- round(ihds_scores$IHDS_ASER, 3)*100
-
-```
-
-Compare ASER, NAS, and IHDS scores
-
-
-```{r}
-ed_dir <- ("C:/Users/dougj/Documents/Data/Education")
-aser_nas_path <- file.path(ed_dir, "ASER 2018 and NAS 2017 grade 3 reading.csv")
-aser_nas <- read_csv(aser_nas_path)
-scores <- aser_nas %>% full_join(ihds_scores, by = "State")
-
-# drop if IHDS_ASER is NA
-scores <- scores %>% filter(!is.na(IHDS_ASER)) %>% arrange(ASER) %>% select(State, ASER, IHDS_ASER, NAS, obs)
-
-# calculate correlation matrix --> while there are a few outliers, overall the ASER data and IHDS data match Ok
-temp <- scores %>% select(ASER, IHDS_ASER, NAS)
-cor(temp, method = "pearson")
-cor(temp, method = "spearman")
-
-
-```
-
 
