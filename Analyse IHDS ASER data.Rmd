@@ -1,19 +1,21 @@
 ---
-title: "Analyse ASER results by absentee rate"
+title: "Analyse IHDS ASER data"
 output:
   html_notebook: default
   html_document:
     df_print: paged
   pdf_document: default
 ---
+# Summary
+This notebook analyses IHDS ASER data to determine whether absent students could affect in-school assessments like the NAS. To do this we run a regression of the ASER score on a variable for the number of days absent from school in the previous month, state dummies, and interactions between the state dummies and the absence variable.  We then inspect the coefficients for the interaction terms and test their joint significance. 
 
-Load necessary packages in setup chunk.
+
+### Install packages and import data.
 ```{r setup}
 library(tidyverse)
 library(haven)
 ```
 
-Import just the variables we need from the IHDS 2012 DS0001 dataset.
 ```{r}
 ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
 ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
@@ -22,6 +24,7 @@ ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
 df <- read_dta(ind_file, col_select = c(STATEID, PSUID, URBAN2011, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, starts_with("CS"), starts_with("TA"), starts_with("ED")) )
 ```
 
+### Inspect data
 Inspect the CS13 variable which is self-reported number of days absent from school each month. Only look at observations for which we have ASER score and the child attends a govt or govt aided school.
 ```{r}
 attributes(df$CS13)
@@ -35,7 +38,9 @@ df %>% filter(!is.na(TA8B)) %>%
 df %>% filter(!is.na(TA8B)) %>% summarise(non_na_count = sum(!is.na(CS13)), na_count = sum(is.na(CS13)) )
 ```
 
-Compare average ASER score for different levels of absence for kids attending govt schools. The graph seems to be a little all over the place, but there are very few instances where absence was greater than 10 so it makes more sense to focus on the average ASER scores when days_absent <= 10.  In this area of the graph, it seems like absence is negatively correlated with ASER score.
+### Graphical analysis of ASER scores by absence
+Compare average ASER score for different levels of absence for kids attending govt schools. First, graph average score vs absence.  Note that there are relatively few kids with absence over 10 so the area of this graph with absence > 10 should probably be ignored.  Second, create histograms of score for each value of absence up to 10. 
+
 
 ```{r}
 temp <- df %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
@@ -59,4 +64,20 @@ ggplot(temp, aes(factor(TA8B), group = factor(days_absent_capped))) +
   xlab("ASER reading score") +
   facet_grid(~factor(days_absent_capped))
 ```
+
+### Regression of ASER score on absence and state vars
+Regress ASER score on age, absence, state, and state x absence.  Then test the joint significance of all the state x absence terms.
+
+```{r}
+# display the label for each of variables
+vars <- list(df$CS13, df$RO5)
+lapply(vars, FUN = function(x) attributes(x)$label)
+model <- lm(TA8B ~ CS13 + factor(STATEID) + CS13*factor(STATEID) + RO5, data = df)
+library(car)
+linearHypothesis(model, matchCoefs(model, "CS13:"), white.adjust = "hc1")
+library(broom)
+coefs <- tidy(model)
+coefs
+```
+
 

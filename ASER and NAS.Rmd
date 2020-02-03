@@ -114,7 +114,7 @@ ggplot(data = df,aes(x= gdp_rank,y=aser_rank,label= State)) + geom_abline(interc
 While ASER and NAS use different assessments, based on their descriptions it seems like the reading components of each assessment seeks to measure about the same thing. Therefore, it is useful to compare the average scores (as opposed to ranks) of each assessment for each state.
 
 ### calculate IHDS scores by state. 
-Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural govt school or private aided (CS4 == 3 | CS4 ==4) students in grade 3 by state. *warning: this code takes a long time* 
+Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural govt school or private aided (CS4 == 3 | CS4 ==4) students in grades 2 to 4 (there are too few students if we restrict only to grade 3) by state. *warning: this code takes a long time* 
 
 ```{r}
 ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
@@ -160,7 +160,7 @@ ihds_scores$ihds <- round(ihds_scores$ihds, 3)*100
 
 ```
 
-Merge IHDS with ASER and NAS, calcuate correlations 
+Merge IHDS with ASER and NAS, calculate correlations 
 
 ```{r}
 aser_nas <- main_data %>% select(State, ASER, NAS)
