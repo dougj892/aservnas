@@ -7,25 +7,26 @@ output: html_notebook
 Estimate the proportion of ASER data which is noise by looking at autocorrelation of year to year changes in ASER state and district scores.
 
 ## Using autocorrelation to decompose variance
-Kaine and Staiger (2002) point out that if there is a lot of noise in test scores then we would expect that a change in the score from one year to the next would likely revert back to the prior level in the next year. In footnote 7, they point out that if aser scores, $y_t$ are iid then in the extreme the autocorrelation of the changes would be -0.5.
-
-$$ corr(y_t-y_{t-1},y_{t-1}-y_{t-2}) =  \frac{-\sigma_y^2}{2\sigma_y^2} =-0.5$$
-
-If we assume that $y_t=\alpha+v_t+\varepsilon_t; v_t=v_{t-1}+u_t$ i.e. that the test scores have a fixed component $\alpha$, a persistent component $v_t$ which follows a random walk, and a noise component $\varepsilon$, then...
-
+[Kaine and Staiger (2002)](https://pubs.aeaweb.org/doi/pdfplus/10.1257/089533002320950993) develop a method for decomposing variance in the changes in scores into persistent and non-persistent shocks.  First, they assume that $y_t=\alpha+v_t+\varepsilon_t; v_t=v_{t-1}+u_t$ i.e. the measure of learning outcomes has a fixed component $\alpha$, a persistent component $v_t$ which follows a random walk, and a noise component $\varepsilon$. Then $Var(y_t-y_{t-1})= \sigma_u^2+2\sigma_{\varepsilon}^2$ and the proportion of the overall variance of the changes in y arising due to the non-persistent shock, the $2\sigma_{\varepsilon}^2$ component, can be estimated as...
 
 $$ -2*corr(y_t-y_{t-1},y_{t-1}-y_{t-2}) =  \frac{2\sigma_{\varepsilon}^2}{(\sigma_u^2+2\sigma_{\varepsilon}^2)} $$
-Which is also the proportion of the total variance in the deltas accounted for by the noise component.
+(See the Kane and Staiger paper for a more thorough explanation.)
 
-## Theoretical sampling noise for district deltas
-The Wadhwa and ? paper mentions that the SE  for the state averages is < 1 ppt (for the 10 or so states they look at). If we assume that the ICC of scores within villages is about .067 (which is the value we get from IHDS, see other notebook), and the proportion p is about 50%, then the SE of the delta should be about .05.
+## Decomposing non-persistent variance into sampling and other sources
+It is useful to further decompose the $2\sigma_{\varepsilon}^2$ component into variance arising from sampling error and variance from unexplained sources.  If we assume that $\varepsilon_t = \varepsilon_{ts} + \varepsilon_{to}$ where the first component is due to sampling and the second is due to other unexplained sources (and the two components are independent), then...
 
-$$ d = 1+(m-1)\rho \approx 1+(30-1)*.067=3$$
+$$ \frac{\sigma_{s}^2}{\sigma_{o}^2}=\frac{corr*\sigma_{\Delta}^2+\sigma_{s}^2}{corr*\sigma_{\Delta}^2} $$
 
-$$ \sigma_y^2=\frac{p*(1-p)}{600}\approx \frac{.25}{600}$$ 
+Where corr is from the equation above and $\sigma_{\Delta}^2 = \sigma_u^2+2\sigma_{\varepsilon}^2$. (Note that these are my own derivations. It would be useful to go back to Kane and Staiger to verify that they did something similar here.)
 
-$$ \sigma_{\Delta}=\sqrt{2d*\sigma_y^2} \approx .05 $$
+Unfortunately, ASER doesn't publish standard errors and since we don't have access to the microdata we can't directly estimate the standard errors and thus .  There are two ways in which we can indirectly estimate the standard errors though.  First, this [paper](http://img.asercentre.org/docs/Aser%20survey/Technical%20Papers/precisionofaserestimates_ramaswami_wadhwa.pdf) by Ramaswami and Wadhwa gives standard errors for a few states and districts. Standard errors for the proportion of class 3-5 students who can read a std 1 text by state, reported in table 1, are all roughly .01.  Standard errors for districts are a little harder to calculate since they only report the margin of error, but appear to be around .04. (To arrive at this figure, I used the margin of errors reported for std35_lang in table 2 which are roughly .12.  From table 1, I assumed that the prevalence of std35_lang is around .65 and used the formula from the paper for margin of error to back out the standard errors.). So our estimate of $\sigma_{s}^2$ for state averages is .0001=.01^2 and for district averages is .0016=.04^5.
 
+Another way of calculating the standard error for the districts is by using knowledge of the sampling design and an estimate of the ICC at the village level from IHDS. Using IHDS, we know that the ICC of ASER scores at the village level is around .067. (See the IHDS analysis notebook for this calculation.) Within each district, ASER samples 30 villages and interviews 20 households (or is it kids?) per village. For a variable with prevalence p = .65, the variance of the district estimates from sampling would be...
+
+$$ DEFF = 1+(m-1)\rho \approx 1+(30-1)*.067=2.943$$
+
+$$ \sigma_s^2=\frac{DEFF*p*(1-p)}{600}\approx .0011$$ 
+The fact that this estimate closely matches our rough estimate backed out from the Ramaswami and Wadhwa paper gives us confidence.
 
 
 ```{r setup}
@@ -64,12 +65,23 @@ dist_deltas <- dists %>%
 dist_deltas %>% filter(year != 2006) %>% ungroup() %>%
   summarize(cor(delta_letters,delta_nums))
 
-# Calculate average autocorrelation of delta_letters
+# Calculate autocorrelation of delta_letters by district and then average over all districts
 dist_deltas %>% 
   filter(year >= 2008) %>% 
   summarise(auto = cor(delta_letters, delta_letters_lagged)) %>%
   ungroup() %>%
   summarise(mean_auto=mean(auto))
+
+# Calculate overall autocorrelation of delta letters without first calculating for each state.
+# this should be about the same as when we first calculate for each state and then average --> which it is.
+corr <- dist_deltas %>% filter(year >= 2008) %>%
+  ungroup() %>%
+  summarize(auto =cor(delta_letters,delta_letters_lagged, use = "pairwise.complete.obs"))
+corr
+
+# Estimate the proportion of non-persistent variance due to sampling
+sig_delta <- var(dist_deltas$delta_letters/100, na.rm = TRUE)
+(corr*sig_delta +.0011)/(corr*sig_delta)
 
 ```
 
@@ -124,9 +136,14 @@ state_deltas %>%
 
 # Calculate correlation betwen delta letters and delta letters lagged for entire dataset (without first calculating for each state and then averaging).
 # this should be about the same as when we first calculate for each state and then average --> which it is.
-state_deltas %>% filter(year >= 2008) %>%
+corr <- state_deltas %>% filter(year >= 2008) %>%
   ungroup() %>%
   summarize(auto =cor(delta_reading,delta_reading_lagged, use = "pairwise.complete.obs"))
+corr
+
+# Estimate the proportion of non-persistent variance due to sampling
+sig_delta <- var(state_deltas$delta_reading/100, na.rm = TRUE)
+(corr*sig_delta +.0011)/(corr*sig_delta)
 
 ```
 
@@ -139,8 +156,6 @@ states %>% group_by(State) %>% mutate(reading_lagged = lag(std3_reading)) %>%
   ungroup() %>%
   summarize(auto = cor(std3_reading, reading_lagged, use = "pairwise.complete.obs")) 
 ```
-
-
 
 
 

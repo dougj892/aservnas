@@ -1,11 +1,10 @@
 ---
 title: "Compare ASER, NAS, and IHDS"
 output: html_notebook
-root.dir: "C:/Users/dougj/Documents/Data/Education/"
 ---
 
 # Summary
-This notebook compares ASER 2018 data with NAS 2017 data.  ASER and NAS differ in both sampling and the assessment tool used. I provide a brief recap of ASER and NAS and then discuss what data is used for this comparison. The ASER Centre has put together a good comparison of the two surveys [here](https://img.asercentre.org/docs/Bottom%20Panel/Key%20Docs/nas_stdvvs_aser.pdf)
+This notebook compares ASER 2018 data with NAS 2017 data.  ASER and NAS differ in both sampling and the assessment tool used. I provide a brief recap of ASER and NAS and then discuss what data is used for this comparison. The ASER Centre has put together a comparison of the two surveys [here](https://img.asercentre.org/docs/Bottom%20Panel/Key%20Docs/nas_stdvvs_aser.pdf)
 
 ## ASER
 1. Frequency
@@ -28,7 +27,12 @@ This notebook compares ASER 2018 data with NAS 2017 data.  ASER and NAS differ i
 
 
 ## NAS
-NCERT has been conducting NAS since 2001 but in previous years they only collected data for a single grade at a time. (For example, they collected data for class 5 in academic year 2001-02, for class 8 in academic year 2002-03, and for class 3 in academic year 2003-04.  See [here](http://www.ncert.nic.in/programmes/NAS/pdf/DRC_report.pdf) page 6 for more info.) In addition, the sample sizes in previous years were smaller (they were only intended to be representative at the state level) and the assessment tool used was different. 
+NCERT has been conducting NAS since 2001 but in previous years they only collected data for a single grade at a time. (For example, they collected data for class 5 in academic year 2001-02, for class 8 in academic year 2002-03, and for class 3 in academic year 2003-04.  See [here](http://www.ncert.nic.in/programmes/NAS/pdf/DRC_report.pdf) page 6 for more info.) In addition, the sample sizes in previous years were smaller (they were only intended to be representative at the state level) and the assessment tool used was different. More details of NAS 2017 can be found [here](http://www.ncert.nic.in/programmes/NAS/Training.html). In particular, the following documents are partiularly useful:
+
+* [FAQ](http://www.ncert.nic.in/programmes/NAS/pdf/NAS_FrequentlyAsked_Questions.pdf)
+* [Field investigator module for test administration](http://www.ncert.nic.in/programmes/NAS/pdf/Module_Administration_Field_Investigators.pdf) 
+* [District training module](http://www.ncert.nic.in/programmes/NAS/pdf/NAS_District_Workshop_Module.pdf)
+* [Operational guidelines cum training manual](http://www.ncert.nic.in/programmes/NAS/pdf/Operational_Guidelines_Training_Manual.pdf)
 
 
 1. Frequency
@@ -37,12 +41,23 @@ NCERT has been conducting NAS since 2001 but in previous years they only collect
     1. Schools are selected from UDISE using PPS (according to the ASER note on the NAS)
     2. Only government schools (and maybe private aided - not sure) included
     2. Grades 3, 5, and 8 covered
+    3. If there is more than one section for grades 3, 5, or 8 then one section was randomly selected. (See bottom of page 7 of FAQ)
+    4. If a section has more than 30 students, then roughly 30 students randomly selected. The method for randomly selecting students appears to be well thought and clearly documented in field investigator module.
 3. Data collected
     1. Test language, math, and environmental science
     2. Seems like they also collect basic data about the school
+4. Implementation
+    1. NCERT is responsible for designing the survey tools and quality assurance. (See roles and functions of different stakeholders in FAQ) 
+    2. States are responsible for translating the test into regional languages
+    3. The test is a paper and pencil test. Students fill out a paper questionnaire and then the field investigators tallies responses on an OMR sheet.  
+    4. Government school teachers cannot be field investigators. Ideally, DIET students should be field investigators but B.Ed or M.Ed students can only serve as FIs. (See FAQ and FI module)
+    5. Field investigators visit schools on a prep day to meet the teachers and fill the school and teacher questionnaires. The assessment is done on a second day (which was November 17th for all districts across the country).
+    6. The test is paper and pencil. Field investigators read questions aloud (but do not read the passage in the reading comprehension book). 
+    7. According to the field investigator module, the field investigatores "after administration of tests, fill up the PQ by
+interview mode for each student one by one"
+    8. It seems like only class 8 students directly fill OMR sheets and that class 3 and 5 students instead mark in the test booklet. (page 14 and 15 of field investigator module)
 4. Other
-    1. Paper and pencil test
-    2. Estimates are not weighted (actual enrollment varied quite a bit from figures in USIDE so ideally should have used weights
+    1. Estimates are not weighted (actual enrollment varied quite a bit from figures in USIDE so ideally should have used weights)
     
 ## Comparing ASER and NAS
 The data and code below is from Andres Parrado.  Andres manually copied ASER data from the ASER 2018 report and NAS data from [here](http://nas.schooleduinfo.in/dashboard/nas_ncert#/).  To make the data as comparable as possible...
