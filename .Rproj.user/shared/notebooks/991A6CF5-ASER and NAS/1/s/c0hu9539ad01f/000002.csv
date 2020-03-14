@@ -1,0 +1,14 @@
+"0","```r
+
+scores.long <- scores %>% select(State, ASER_2018, NAS, ihds) %>%
+  rename(IHDS = ihds) %>%
+  filter(!is.na(ASER_2018) & !is.na(NAS)) %>%
+  gather(Assessment, avg_score, -State) 
+
+ggplot(data = scores.long, aes(x= reorder(State, avg_score),y=avg_score, fill= Assessment)) + 
+  geom_bar(stat = \"identity\", position = position_dodge(width=.8)) + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_manual(values = c(\"lightblue\", \"blue\", \"darkblue\"))+
+  labs(y = \"Average score\", x = \"\")
+
+```"

@@ -1,0 +1,5 @@
+"0","```r
+ggplot(dist_deltas, aes(x=delta_letters))+
+  stat_function(fun = dnorm, args = list(mean=0, sd = 5), col = \"red\")+
+  geom_density()
+```"

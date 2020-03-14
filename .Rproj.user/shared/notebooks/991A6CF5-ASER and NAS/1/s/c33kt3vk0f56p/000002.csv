@@ -1,0 +1,9 @@
+"0","```r
+ggplot(data = df,aes(x= gdp_rank,y=aser_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color=\"orange\")  +
+  geom_point(color=\"darkblue\")  +
+  theme_bw() + labs(title=\"ASER vs GDP\", 
+                    x = \"GDP rank\", y = \"Rank in ASER (2018)\") + 
+   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
+   panel.grid.major =   element_line(colour = \"gray\",size=0.1)) + geom_label_repel() 
+
+```"

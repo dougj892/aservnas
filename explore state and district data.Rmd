@@ -1,0 +1,53 @@
+---
+title: "Explore ASER state and district data"
+output: html_notebook
+---
+
+The purpose of this notebook is mainly to put graphs and other analyes from the other notebooks that are useful but which I don't want to include in them so that they don't get too cluttered.
+
+```{r setup, results='hide'}
+library(tidyverse)
+path <- "C:/Users/dougj/Documents/Data/Education/ASER District Data/Clean"
+figures <- "C:/Users/dougj/Documents/Education in India/Original research/Learning outcomes data/figures"
+dists <- read_csv(file.path(path, "aser_district_partial.csv"))
+path <- "C:/Users/dougj/Documents/Data/Education/ASER trends over time"
+states <- read_csv(file.path(path, "aser_trends.csv")) %>% select(year, State, std3_reading, std3_math)
+```
+
+Graph ASER reading scores over time for the 5 largest states. 
+
+```{r}
+# selected_states <- sample(unique(states$state),5)
+# random_5 <- states %>% filter(State %in% selected_states)
+
+top_5 <- c("uttarpradesh", "maharashtra", "bihar", "westbengal", "madhyapradesh", "andhrapradesh")
+top_5_df <- states %>% filter(State %in% top_5)
+ggplot(top_5_df, aes(x = year, y = std3_reading, color = State)) +
+  geom_line()
+```
+Plot line graphs for districts std35_std1 for districts in a randomly selected state to get a feel for the data.
+
+```{r}
+state <- sample(unique(dists$State),1)
+one_state <- dists %>% filter(State == state)
+ggplot(one_state, aes(x = year, y = std12_letters_and_up, color = District)) +
+  geom_line(size = 1.5) + ylim(c(50,100)) 
+```
+
+
+
+Histogram of deltas with normal curve with standard distribution of .05 overlaid on top. 
+
+```{r}
+
+# Create variable for deltas and first and second lag of the delta
+dist_deltas <- dists %>% 
+  group_by(State, District) %>% 
+  mutate(delta_letters = std12_letters_and_up - lag(std12_letters_and_up, order_by = year), delta_nums = std12_numbers_and_up - lag(std12_numbers_and_up)) %>%
+  mutate(delta_letters_lagged = lag(delta_letters, order_by = year), delta_letters_dbl_lag = lag(delta_letters, n= 2, order_by = year)) %>%
+  arrange(State, District, year)
+
+ggplot(dist_deltas, aes(x=delta_letters))+
+  stat_function(fun = dnorm, args = list(mean=0, sd = 5), col = "red")+
+  geom_density()
+```

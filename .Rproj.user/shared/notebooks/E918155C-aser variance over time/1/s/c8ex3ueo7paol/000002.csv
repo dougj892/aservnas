@@ -1,0 +1,4 @@
+"0","```r
+path <- \"C:/Users/dougj/Documents/Data/Education/ASER trends over time\"
+states <- read_csv(file.path(path, \"aser_trends.csv\")) %>% select(year, State, std3_reading, std3_math)
+```"

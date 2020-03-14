@@ -1,0 +1,6 @@
+"0","df_final <- df_bar %>%"
+"0","  pivot_wider(names_from = ""bar_part"", values_from= ""value"") %>%"
+"0","  mutate(total_var = `Persistent`+`Transitory sampling`+`Transitory other`) %>%"
+"0","  mutate(share_pers = `Persistent`/total_var, share_samp = `Transitory sampling`/total_var, share_other = `Transitory other`/total_var)"
+"0",""
+"0","write_csv(df_final, file.path(output, ""variance_decomposition.csv""))"

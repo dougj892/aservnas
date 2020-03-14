@@ -1,0 +1,39 @@
+"0","```r
+# treat the SE as just another score
+scores.long2 <- scores  %>%
+  filter(!is.na(ASER_2018) & !is.na(NAS)) %>% 
+  mutate(IHDS = paste(ihds,ihds_se, sep =\"-\")) %>% 
+  select(State, ASER_2018, NAS, IHDS) %>% 
+  gather(Assessment, avg_score, -State) %>%
+  separate(avg_score, sep = \"-\", into = c(\"avg_score\",\"se\"))
+```"
+"1","Expected 2 pieces. Missing pieces filled with `NA` in 54 rows [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...].
+"
+"0","```r
+# convert avg_score and se back to numeric 
+scores.long2 <- scores.long2  %>%
+  mutate(avg_score = as.numeric(avg_score), se = as.numeric(se))
+```"
+"1","NAs introduced by coercionNAs introduced by coercion
+"
+"0","```r
+# multiply se 
+scores.long2 <- scores.long2  %>%
+  mutate(se = 100*se)
+
+
+# create y_min and y_max
+m <- qnorm(1-.05/2)
+scores.long2 <- scores.long2  %>%
+  mutate(ymin = avg_score-m*se, ymax = avg_score+m*se) %>%
+  mutate(ymin = ifelse(ymin <0, 0, ymin))
+
+
+ggplot(data = scores.long2, aes(x= reorder(State, avg_score),y=avg_score, fill= Assessment)) + 
+  geom_bar(stat = \"identity\", position = position_dodge(width=.8)) + 
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = .1) + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_manual(values = c(\"lightblue\", \"blue\", \"darkblue\"))+
+  labs(y = \"Average score\", x = \"\")
+ggsave(\"aser_nas_ihds_values.png\", width = 9, height = 6 , path = figures)
+```"

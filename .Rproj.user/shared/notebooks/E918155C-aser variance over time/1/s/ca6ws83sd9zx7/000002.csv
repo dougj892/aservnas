@@ -1,0 +1,6 @@
+"0","```r
+state <- sample(unique(dists$State),1)
+one_state <- dists %>% filter(State == state)
+ggplot(one_state, aes(x = year, y = std12_letters_and_up, color = District)) +
+  geom_line(size = 1.5) + ylim(c(50,100)) 
+```"
