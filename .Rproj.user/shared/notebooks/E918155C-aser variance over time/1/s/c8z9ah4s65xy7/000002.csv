@@ -1,8 +1,0 @@
-"0","```r
-
-# 
-check_corr <- dist_deltas %>% filter(year >= 2009) %>%
-  ungroup() %>%
-  summarize(auto =cor(delta_letters,delta_letters_dbl_lag, use = \"pairwise.complete.obs\"))
-check_corr
-```"

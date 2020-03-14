@@ -1,7 +1,0 @@
-"0","```r
-
-
-# Check that changes in letters and numbers is correlated -- they are
-dist_deltas %>% filter(year != 2006) %>% ungroup() %>%
-  summarize(cor(delta_letters,delta_nums))
-```"

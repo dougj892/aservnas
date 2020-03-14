@@ -1,9 +1,0 @@
-"0","```r
-# selected_states <- sample(unique(states$state),5)
-# random_5 <- states %>% filter(State %in% selected_states)
-
-top_5 <- c(\"uttarpradesh\", \"maharashtra\", \"bihar\", \"westbengal\", \"madhyapradesh\", \"andhrapradesh\")
-top_5_df <- states %>% filter(State %in% top_5)
-ggplot(top_5_df, aes(x = year, y = std3_reading, color = State)) +
-  geom_line()
-```"
