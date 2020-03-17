@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1584350064756.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2848932585",
+    "id" : "6987E4C5",
+    "lastKnownWriteTime" : 1584423563,
+    "last_content_update" : 1584423563474,
+    "path" : "~/code/notebooks/Education in India/aservnas/Simulate effect of variance on state rankings.Rmd",
+    "project_path" : "Simulate effect of variance on state rankings.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "33,36",
+        "scrollLine" : "7"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

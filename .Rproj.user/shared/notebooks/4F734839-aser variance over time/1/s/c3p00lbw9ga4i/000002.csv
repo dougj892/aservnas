@@ -1,0 +1,36 @@
+"0","library(tidyverse)"
+"0","dist_path <- ""C:/Users/dougj/Documents/Data/Education/ASER District Data/Clean"""
+"0","output <- ""C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures"""
+"0","dists <- read_csv(file.path(dist_path, ""aser_district_partial.csv""))"
+"2","Parsed with column specification:
+cols(
+  State = [31mcol_character()[39m,
+  District = [31mcol_character()[39m,
+  year = [32mcol_double()[39m,
+  std12_letters_and_up = [32mcol_double()[39m,
+  std12_numbers_and_up = [32mcol_double()[39m,
+  std35_std1_and_up = [32mcol_double()[39m,
+  std35_subtraction_and_up = [32mcol_double()[39m
+)
+"
+"0","state_path <- ""C:/Users/dougj/Documents/Data/Education/ASER trends over time"""
+"0","states <- read_csv(file.path(state_path, ""aser_trends.csv"")) %>% select(year, State, std3_reading, std3_math)"
+"2","Parsed with column specification:
+cols(
+  .default = col_double(),
+  State = [31mcol_character()[39m
+)
+"
+"2","See spec(...) for full column specifications.
+"
+"0","##### IMPORTANT: TO DO ALL THE ANALYZE FOR MATH, SET THE SUBJECT BELOW TO ""MATH"" ### "
+"0","subject <- ""math"""
+"0","if (subject == ""math"") {"
+"0","  dists$std35_std1_and_up <- dists$std35_subtraction_and_up"
+"0","  states$std3_reading <- states$std3_math"
+"0","}"
+"0",""
+"0",""
+"0","### IMPORTANT -- THIS IS WHERE I SPECIFY DISTRICT SAMPLING VARIANCE ###"
+"0","var_dist_sampling <- .0013"
+"0",""

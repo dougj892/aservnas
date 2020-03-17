@@ -49,12 +49,12 @@ ASER doesn't publish standard errors and we don't have access to the microdata s
 
 Alternatively, we may calculate standard errors for district averages analtically using knowledge of the sampling design and an estimate of the ICC at the village level from IHDS. Using IHDS, we know that the ICC of ASER scores at the village level is around .067. (See the IHDS analysis notebook for this calculation.) Within each district, ASER samples 30 villages and interviews 20 households (or is it kids?) per village. For a variable with prevalence p = .65, the variance of the district estimates from sampling would be...
 
-$$ DEFF = 1+(m-1)\rho \approx 1+(30-1)*.067=2.943$$
+$$ DEFF = 1+(m-1)\rho \approx 1+(20-1)*.067=`r .067*19+1`$$
 
-$$ \sigma_s^2=\frac{DEFF*p*(1-p)}{600}\approx .0011$$ 
+$$ \sigma_s^2=\frac{DEFF*p*(1-p)}{600}\approx `r (.067*19+1)*.5*(1-.5)/600`$$ 
 The close similarity between estimates of $\sigma_{s}^2$ derived analytically and estimates backed out from the Ramaswami and Wadhwa paper gives us confidence.
 
-Our final value of $\sigma_{s}^2$ for districts is .0011.  For states, we calculate $\sigma_{s}^2=.0011/(ND_s)$ where $ND_s$ is the number of districts in state s and then take the average across states. We note that the proportion of variance in state levels and changes due to sampling is very small and thus estimating state level sampling variance accurately is less important than for districts.
+We take as our final value of $\sigma_{s}^2$ for districts is .0013.  For states, we calculate $\sigma_{s}^2=.0013/(N_s)$ where $N_s$ is the number of districts in state s and then take the average across states. We note that the proportion of variance in state levels and changes due to sampling is very small and thus estimating state level sampling variance accurately is less important than for districts.
 
 ## District Data
 We use ASER data from the ASER district pages from years 2006 to 2014.  These are the only years for which ASER has publicly released district level data (to my knowledge).  There are four learning outcomes variables which all of these district pages include:
@@ -66,7 +66,7 @@ We use ASER data from the ASER district pages from years 2006 to 2014.  These ar
 
 Note that these figures averages across all children, regardless of what type of school they attend. 
 
-We focus mainly on the third learning outcome -- the share of class 3-5 students who can read a level 1 text.  This is because this outcome is similar to the outcome used to compare ASER to NAS.
+We use the last two learning outcomes -- those for children in class 3, 4, and 5. These learning outcomes should be, in theory, more stable. In addition, they are similar to the learning outcome used in the ASER vs. NAS analysis.
 
 ## State Data
 State level data has been scraped from the individual state "ASER Trends over time" reports. I first used tabula to scrape the pdf and then used an R script ("import ASER trends over time") to clean up the tabula output.  Note that I had to manually change the tabula output in several cases because it didn't work super well.
@@ -82,7 +82,7 @@ These are the only variables available for class 3 kids (though they are also br
 ```{r, results='hide'}
 library(tidyverse)
 dist_path <- "C:/Users/dougj/Documents/Data/Education/ASER District Data/Clean"
-output <- "C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures/aser_reading_reliability"
+output <- "C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures"
 dists <- read_csv(file.path(dist_path, "aser_district_partial.csv"))
 
 state_path <- "C:/Users/dougj/Documents/Data/Education/ASER trends over time"
@@ -91,10 +91,13 @@ states <- read_csv(file.path(state_path, "aser_trends.csv")) %>% select(year, St
 ##### IMPORTANT: TO DO ALL THE ANALYZE FOR MATH, SET THE SUBJECT BELOW TO "MATH" ### 
 subject <- "math"
 if (subject == "math") {
-  dists$std12_letters_and_up <- dists$std12_numbers_and_up
+  dists$std35_std1_and_up <- dists$std35_subtraction_and_up
   states$std3_reading <- states$std3_math
-  output <- "C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures/aser_math_reliability"
 }
+
+
+### IMPORTANT -- THIS IS WHERE I SPECIFY DISTRICT SAMPLING VARIANCE ###
+var_dist_sampling <- .0013
 
 ```
 
@@ -106,17 +109,17 @@ Estimate $corr(\Delta y_t , \Delta y_{t-1} )$ by using the autocorrelation of di
 # Create variable for deltas and first and second lag of the delta
 dist_deltas <- dists %>% 
   group_by(State, District) %>% 
-  mutate(delta_letters = std12_letters_and_up - lag(std12_letters_and_up, order_by = year), delta_nums = std12_numbers_and_up - lag(std12_numbers_and_up)) %>%
-  mutate(delta_letters_lagged = lag(delta_letters, order_by = year), delta_letters_dbl_lag = lag(delta_letters, n= 2, order_by = year)) %>%
+  mutate(delta_reading = std35_std1_and_up - lag(std35_std1_and_up, order_by = year), delta_math = std35_subtraction_and_up - lag(std35_subtraction_and_up)) %>%
+  mutate(delta_reading_lagged = lag(delta_reading, order_by = year), delta_reading_dbl_lag = lag(delta_reading, n= 2, order_by = year)) %>%
   arrange(State, District, year)
 
 
-# Calculate autocorrelation of delta_letters by district and then average over all districts
+# Calculate autocorrelation of delta_reading by district and then average over all districts
 # Note that since the data is already grouped by State and district, we are calculating 
 # autocorrelation for each district and then averaging across all districts
 corr_dist_deltas <- dist_deltas %>% 
   filter(year >= 2008) %>% 
-  summarise(auto = cor(delta_letters, delta_letters_lagged)) %>%
+  summarise(auto = cor(delta_reading, delta_reading_lagged)) %>%
   ungroup() %>%
   summarise(mean_auto=mean(auto)) %>% .$mean_auto
 
@@ -127,19 +130,19 @@ corr_dist_deltas <- dist_deltas %>%
 check_corr_dist_deltas <- dist_deltas %>% 
   ungroup() %>%
   filter(year >= 2008) %>% 
-  summarise(auto = cor(delta_letters, delta_letters_lagged))
+  summarise(auto = cor(delta_reading, delta_reading_lagged))
 
 
 # Calculate the overall variance of the deltas
 # Note that we have to divide by 100 here to get the actual number.
 # We didn't need to do this above because we just calculated correlation and thus scale didn't matter
-var_dist_deltas <- var(dist_deltas$delta_letters/100, na.rm = TRUE)
+var_dist_deltas <- var(dist_deltas$delta_reading/100, na.rm = TRUE)
 
 # Calculate overall variance of the district values.
 # Note that we don't want to first calculate variance of dist reading scores by state and then average
 # That would really underestimate the variance of the district scores.
 # (To understand intuition, note districts are considered iid in the model above.)
-var_dist_levels <- var(dists$std12_letters_and_up/100, na.rm = TRUE)
+var_dist_levels <- var(dists$std35_std1_and_up/100, na.rm = TRUE)
 
 # Calculate variance of the transitory component
 var_dist_epsilon <- -corr_dist_deltas*var_dist_deltas
@@ -152,13 +155,13 @@ Check that $corr(\Delta y_t , \Delta y_{t-2} )=0$ and that letters and numbers a
 # 
 corr_dist_dbl_lag <- dist_deltas %>% filter(year >= 2009) %>%
   ungroup() %>%
-  summarize(auto =cor(delta_letters,delta_letters_dbl_lag, use = "pairwise.complete.obs")) %>%
+  summarize(auto =cor(delta_reading,delta_reading_dbl_lag, use = "pairwise.complete.obs")) %>%
   .$auto
 
 
 # Check that changes in letters and numbers is correlated -- they are
 dist_deltas %>% filter(year != 2006) %>% ungroup() %>%
-  summarize(cor(delta_letters,delta_nums))
+  summarize(cor(delta_reading,delta_math))
 
 ```
 
@@ -176,7 +179,7 @@ From these figures, we can calculate:
 
 * Share of variance in **levels** due to transitory shocks = `r var_dist_epsilon/var_dist_levels`
 * Share of variance in **changes** due to transitory shocks = `r -2*corr_dist_deltas`
-* Share of the transitory variance due to sampling (for both changes and levels) = `r .0011/var_dist_epsilon`
+* Share of the transitory variance due to sampling (for both changes and levels) = `r var_dist_sampling/var_dist_epsilon`
 
 ## State analysis - method 1
 Estimate $corr(\Delta y_t , \Delta y_{t-1} )$ at state level by average autocorrelation of state deltas.
@@ -190,7 +193,7 @@ state_deltas <- states %>%
   arrange(State, year)
 
 
-# Calculate average autocorrelation of delta_letters
+# Calculate average autocorrelation of delta_reading
 corr_state_deltas <- state_deltas %>% 
   filter(year >= 2008) %>% 
   summarise(auto = cor(delta_reading, delta_reading_lagged, use = "pairwise.complete.obs")) %>%
@@ -220,7 +223,7 @@ Calculate average sampling variance. Note that since we are just calculating the
 ```{r}
 var_state_sampling <- dists %>% filter(year ==2008) %>%
   count(State) %>%
-  mutate(sampling_var = .0011/n) %>%
+  mutate(sampling_var = var_dist_sampling/n) %>%
   summarize(mean_sampling = mean(sampling_var)) %>% .$mean_sampling
 
   
@@ -288,7 +291,7 @@ ggplot(quick_df, aes(x= lag, y = correlation)) +
   geom_point() +
   ylim(0,1)
 
-ggsave("correlation_decay.png", width = 5, height = 6 , path = output)
+ggsave(paste(subject, "- correlation_decay.png"), width = 5, height = 6 , path = output)
 ```
 
 ### Consolidated state level results - method 2
@@ -318,17 +321,17 @@ df_bar <- tibble(state_or_dist = rep(c("State","District"),each =6),
 # Update the values for the district changes bar
 df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Changes") & (df_bar$bar_part == "Persistent")] <- var_dist_deltas - 2*var_dist_epsilon
 
-df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Changes") & (df_bar$bar_part == "Transitory sampling")] <- 2*.0011
+df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Changes") & (df_bar$bar_part == "Transitory sampling")] <- 2*var_dist_sampling
 
-df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Changes") & (df_bar$bar_part == "Transitory other")] <- 2*var_dist_epsilon - 2*.0011
+df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Changes") & (df_bar$bar_part == "Transitory other")] <- 2*var_dist_epsilon - 2*var_dist_sampling
 
 
 # Update the values for the district levels bar
 df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Levels") & (df_bar$bar_part == "Persistent")] <- var_dist_levels - var_dist_epsilon
 
-df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Levels") & (df_bar$bar_part == "Transitory sampling")] <- .0011
+df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Levels") & (df_bar$bar_part == "Transitory sampling")] <- var_dist_sampling
 
-df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Levels") & (df_bar$bar_part == "Transitory other")] <- var_dist_epsilon - .0011
+df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Levels") & (df_bar$bar_part == "Transitory other")] <- var_dist_epsilon - var_dist_sampling
 
 ##### STATE DATA #####
 
@@ -348,15 +351,17 @@ df_bar$value[(df_bar$state_or_dist == "State") & (df_bar$changes_or_levels == "L
 df_bar$value[(df_bar$state_or_dist == "State") & (df_bar$changes_or_levels == "Levels") & (df_bar$bar_part == "Transitory other")] <- var_state_levels_other2
 
 
-
+# I have created this graph so that you can see it in the notebook
+# The final version which combines both subjects, is created in a separate notebook
 ggplot(df_bar, aes(fill = bar_part, y=value, x= changes_or_levels)) +
   geom_bar(position="stack", stat ="identity") +
   facet_grid(~ state_or_dist) + 
   scale_fill_manual(values = c("red", "orange", "blue"))+
   labs(fill = "Variance component", x = "")
 
-ggsave("variance_decomposition.png", width = 5, height = 6 , path = output)
+ggsave(paste(subject," - variance_decomposition.png"), width = 5, height = 6 , path = output)
 
+write_csv(df_bar, file.path(output, paste(subject, "- bar data.csv")))
 ```
 
 ### Create dataframe with results
@@ -368,7 +373,7 @@ df_final <- df_bar %>%
   mutate(total_var = `Persistent`+`Transitory sampling`+`Transitory other`) %>%
   mutate(share_pers = `Persistent`/total_var, share_samp = `Transitory sampling`/total_var, share_other = `Transitory other`/total_var)
 
-write_csv(df_final, file.path(output, "variance_decomposition.csv"))
+write_csv(df_final, file.path(output, paste(subject, "- var deco.csv")))
 ```
 
 

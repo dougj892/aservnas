@@ -1,0 +1,60 @@
+"0","library(tidyverse)"
+"0","path <- ""C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures"""
+"0","math_bar_data <- read_csv(file.path(path, ""math - bar data.csv""))"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  bar_part = [31mcol_character()[39m,
+  value = [32mcol_double()[39m
+)
+"
+"0","math_bar_data$subject <- ""Math"""
+"0",""
+"0","reading_bar_data <- read_csv(file.path(path, ""reading - bar data.csv""))"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  bar_part = [31mcol_character()[39m,
+  value = [32mcol_double()[39m
+)
+"
+"0","reading_bar_data$subject <- ""Reading"""
+"0","bar_data <- rbind(math_bar_data, reading_bar_data) "
+"0",""
+"0",""
+"0","math_var_deco <- read_csv(file.path(path, ""math - var deco.csv""))"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  Persistent = [32mcol_double()[39m,
+  `Transitory sampling` = [32mcol_double()[39m,
+  `Transitory other` = [32mcol_double()[39m,
+  total_var = [32mcol_double()[39m,
+  share_pers = [32mcol_double()[39m,
+  share_samp = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"0","math_var_deco$subject <- ""Math"""
+"0",""
+"0",""
+"0","reading_var_deco <- read_csv(file.path(path, ""reading - var deco.csv""))"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  Persistent = [32mcol_double()[39m,
+  `Transitory sampling` = [32mcol_double()[39m,
+  `Transitory other` = [32mcol_double()[39m,
+  total_var = [32mcol_double()[39m,
+  share_pers = [32mcol_double()[39m,
+  share_samp = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"0","reading_var_deco$subject <- ""Reading"""
+"0",""
+"0","var_deco <- rbind(math_var_deco, reading_var_deco)"

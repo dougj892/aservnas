@@ -1,0 +1,116 @@
+"0","```r
+aser_nas <- main_data %>% select(State, ASER_2018, NAS)
+scores <- aser_nas %>% full_join(ihds_scores, by = \"State\")
+
+# drop if IHDS_ASER is NA
+# scores <- scores %>% filter(!is.na(IHDS_ASER)) %>% arrange(ASER) %>% select(State, ASER, IHDS_ASER, NAS, obs)
+
+# calculate correlation matrix --> while there are a few outliers, overall the ASER data and IHDS data match Ok
+# note that 
+temp <- scores %>% select(ASER_2018, ihds, NAS)
+cor(temp, method = \"pearson\", use = \"pairwise.complete.obs\")
+```"
+"1","          ASER_2018        ihds         NAS
+ASER_2018 1.0000000 0.617984954 0.187290066
+ihds      0.6179850 1.000000000 0.003204316
+NAS       0.1872901 0.003204316 1.000000000
+"
+"0","```r
+cor(temp, method = \"spearman\", use = \"pairwise.complete.obs\")
+```"
+"1","          ASER_2018        ihds         NAS
+ASER_2018 1.0000000  0.60152502  0.12671756
+ihds      0.6015250  1.00000000 -0.03106467
+NAS       0.1267176 -0.03106467  1.00000000
+"
+"0","```r
+# conduct formal correlation test
+cor.test(temp$NAS,temp$ihds, use = \"pairwise.complete.obs\", method = \"pearson\")
+```"
+"1","
+	Pearson's product-moment correlation
+
+data:  temp$NAS and temp$ihds
+t = 0.01433, df = 20, p-value = 0.9887
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.4189701  0.4242396
+sample estimates:
+        cor 
+0.003204316 
+"
+"0","```r
+cor.test(temp$ASER_2018,temp$ihds, use = \"pairwise.complete.obs\", method = \"pearson\")
+```"
+"1","
+	Pearson's product-moment correlation
+
+data:  temp$ASER_2018 and temp$ihds
+t = 3.5153, df = 20, p-value = 0.002176
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.2655702 0.8247157
+sample estimates:
+     cor 
+0.617985 
+"
+"0","```r
+cor.test(temp$NAS,temp$ASER_2018, use = \"pairwise.complete.obs\", method = \"pearson\")
+```"
+"1","
+	Pearson's product-moment correlation
+
+data:  temp$NAS and temp$ASER_2018
+t = 0.95332, df = 25, p-value = 0.3496
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.2074917  0.5296102
+sample estimates:
+      cor 
+0.1872901 
+"
+"0","```r
+cor.test(temp$NAS,temp$ihds, use = \"pairwise.complete.obs\", method = \"spearman\")
+```"
+"1","Cannot compute exact p-value with ties
+"
+"1","
+	Spearman's rank correlation rho
+
+data:  temp$NAS and temp$ihds
+S = 1826, p-value = 0.8908
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+        rho 
+-0.03106467 
+"
+"0","```r
+cor.test(temp$ASER_2018,temp$ihds, use = \"pairwise.complete.obs\", method = \"spearman\")
+```"
+"1","Cannot compute exact p-value with ties
+"
+"1","
+	Spearman's rank correlation rho
+
+data:  temp$ASER_2018 and temp$ihds
+S = 705.7, p-value = 0.003063
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+     rho 
+0.601525 
+"
+"0","```r
+cor.test(temp$NAS,temp$ASER_2018, use = \"pairwise.complete.obs\", method = \"spearman\")
+```"
+"1","Cannot compute exact p-value with ties
+"
+"1","
+	Spearman's rank correlation rho
+
+data:  temp$NAS and temp$ASER_2018
+S = 2860.9, p-value = 0.5288
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.1267176 
+"

@@ -1,0 +1,2 @@
+"0","df <- var_deco %>% select(state_or_dist, changes_or_levels, subject, starts_with(""share""))"
+"0","write_csv(df, file.path(path, ""combined var deco.csv""))"

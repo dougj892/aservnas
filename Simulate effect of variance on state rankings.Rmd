@@ -12,13 +12,23 @@ library(tidyverse)
 
 # Inputs -- using state reading changes for now
 n <- 100000
-var_pers <- 0.004025697
-var_trans <- 3.02E-04	+ 0.002344102
-centile <- .1
+centile <- .25
+
+### STATE READING CHANGES ###
+# var_pers <- 0.004025697
+# var_trans <- 3.57E-04	+ 0.002289197
+# 
+
+
+### STATE READING LEVELS ####
+var_pers <- 0.016474368
+var_trans <- 1.78E-04 +	0.001144598
+
+var_pers / (var_pers + var_trans)
 
 # with normal distribution
-# df <- tibble(pers = rnorm(n, mean = 0, sd = var_pers^.5),
-#              trans = rnorm(n, mean = 0, sd = var_trans^.5)) 
+df <- tibble(pers = rnorm(n, mean = 0, sd = var_pers^.5),
+             trans = rnorm(n, mean = 0, sd = var_trans^.5))
 
 # with beta distribution
 # note that if mean = .5 then shape1 =  shape2 with the beta
@@ -29,10 +39,10 @@ centile <- .1
 
 # with the t distribution
 # 
-df_pers <- 3
-df_trans <- 4
-df <- tibble(pers = rt(n, df_pers),
-             trans = rt(n, df_trans))
+# df_pers <- 3
+# df_trans <- 4
+# df <- tibble(pers = rt(n, df_pers),
+#              trans = rt(n, df_trans))
 
 
 df <- df %>%
