@@ -1,4 +1,24 @@
 "0","library(tidyverse)"
+"2","Registered S3 method overwritten by 'dplyr':
+  method           from
+  print.rowwise_df     
+"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[30m-- [1mAttaching packages[22m --------------------------------------- tidyverse 1.3.0 --[39m
+"
+"2","[30m[32mv[30m [34mggplot2[30m 3.2.1     [32mv[30m [34mpurrr  [30m 0.3.3
+[32mv[30m [34mtibble [30m 2.1.3     [32mv[30m [34mdplyr  [30m 0.8.3
+[32mv[30m [34mtidyr  [30m 1.0.0     [32mv[30m [34mstringr[30m 1.4.0
+[32mv[30m [34mreadr  [30m 1.3.1     [32mv[30m [34mforcats[30m 0.4.0[39m
+"
+"2","[30m-- [1mConflicts[22m ------------------------------------------ tidyverse_conflicts() --
+[31mx[30m [34mdplyr[30m::[32mfilter()[30m masks [34mstats[30m::filter()
+[31mx[30m [34mdplyr[30m::[32mlag()[30m    masks [34mstats[30m::lag()[39m
+"
 "0","dist_path <- ""C:/Users/dougj/Documents/Data/Education/ASER District Data/Clean"""
 "0","output <- ""C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures"""
 "0","dists <- read_csv(file.path(dist_path, ""aser_district_partial.csv""))"
@@ -14,7 +34,9 @@ cols(
 )
 "
 "0","state_path <- ""C:/Users/dougj/Documents/Data/Education/ASER trends over time"""
-"0","states <- read_csv(file.path(state_path, ""aser_trends.csv"")) %>% select(year, State, std3_reading, std3_math)"
+"0","states <- read_csv(file.path(state_path, ""aser_trends.csv"")) %>% "
+"0","  select(year, State, std3_read_std1_all, std3_subtract_all) %>% "
+"0","  rename(std3_reading = std3_read_std1_all, std3_math = std3_subtract_all)"
 "2","Parsed with column specification:
 cols(
   .default = col_double(),
@@ -23,6 +45,7 @@ cols(
 "
 "2","See spec(...) for full column specifications.
 "
+"0","  "
 "0","##### IMPORTANT: TO DO ALL THE ANALYZE FOR MATH, SET THE SUBJECT BELOW TO ""MATH"" ### "
 "0","subject <- ""math"""
 "0","if (subject == ""math"") {"

@@ -86,8 +86,11 @@ output <- "C:/Users/dougj/Dropbox/Education in India/Original research/Learning 
 dists <- read_csv(file.path(dist_path, "aser_district_partial.csv"))
 
 state_path <- "C:/Users/dougj/Documents/Data/Education/ASER trends over time"
-states <- read_csv(file.path(state_path, "aser_trends.csv")) %>% select(year, State, std3_reading, std3_math)
+states <- read_csv(file.path(state_path, "aser_trends.csv")) %>% 
+  select(year, State, std3_read_std1_all, std3_subtract_all) %>% 
+  rename(std3_reading = std3_read_std1_all, std3_math = std3_subtract_all)
 
+  
 ##### IMPORTANT: TO DO ALL THE ANALYZE FOR MATH, SET THE SUBJECT BELOW TO "MATH" ### 
 subject <- "math"
 if (subject == "math") {
@@ -209,10 +212,10 @@ check_corr_state_deltas <- state_deltas %>% filter(year >= 2008) %>%
 
 
 # calculate the variance of the deltas
-var_state_deltas <- var(state_deltas$delta_reading/100, na.rm = TRUE)
+var_state_deltas <- var(state_deltas$delta_reading, na.rm = TRUE)
 
 # calculate the variance of the levels
-var_state_levels <- var(state_deltas$std3_reading/100, na.rm = TRUE)
+var_state_levels <- var(state_deltas$std3_reading, na.rm = TRUE)
 
 # calculate variance of transitory component
 var_state_epsilon <- -corr_state_deltas*var_state_deltas
