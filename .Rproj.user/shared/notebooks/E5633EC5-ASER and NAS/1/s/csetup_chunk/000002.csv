@@ -1,7 +1,5 @@
-"0","```r
-library(tidyverse)
-library(haven)
-library(survey)
-path <- \"C:/Users/dougj/Documents/Data/Education\"
-figures <- \"C:/Users/dougj/Documents/Education in India/Original research/Learning outcomes data/figures\"
-```"
+"0","library(tidyverse)"
+"0","library(haven)"
+"0","library(survey)"
+"0","path <- ""C:/Users/dougj/Documents/Data/Education"""
+"0","figures <- ""C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures"""

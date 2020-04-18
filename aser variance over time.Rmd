@@ -57,7 +57,7 @@ The close similarity between estimates of $\sigma_{s}^2$ derived analytically an
 We take as our final value of $\sigma_{s}^2$ for districts is .0013.  For states, we calculate $\sigma_{s}^2=.0013/(N_s)$ where $N_s$ is the number of districts in state s and then take the average across states. We note that the proportion of variance in state levels and changes due to sampling is very small and thus estimating state level sampling variance accurately is less important than for districts.
 
 ## District Data
-We use ASER data from the ASER district pages from years 2006 to 2014.  These are the only years for which ASER has publicly released district level data (to my knowledge).  There are four learning outcomes variables which all of these district pages include:
+We use ASER data from the ASER district pages from years 2006 to 2011.  These are the only years for which ASER has publicly released district level data (to my knowledge).  There are four learning outcomes variables which all of these district pages include:
 
 * Share class 1 and 2 students who can at least read letters
 * Share class 1 and 2 students who can at least recognize numbers
@@ -69,21 +69,30 @@ Note that these figures averages across all children, regardless of what type of
 We use the last two learning outcomes -- those for children in class 3, 4, and 5. These learning outcomes should be, in theory, more stable. In addition, they are similar to the learning outcome used in the ASER vs. NAS analysis.
 
 ## State Data
-State level data has been scraped from the individual state "ASER Trends over time" reports. I first used tabula to scrape the pdf and then used an R script ("import ASER trends over time") to clean up the tabula output.  Note that I had to manually change the tabula output in several cases because it didn't work super well.
+### ASER Trends over Time
+Most of the analyses in this notebook are based on the ASER trends over time report.  The ASER Trends over Time report includes ASER figures by state (and for the country as a whole) for the years 2006 to 2014.  In particular, it includes the following data for the overall country and each state:
 
-There are a lot of different values, but I just used...
+* Proportion boys, girls, and all children 6-14 enrolled in private school 
+* Proportion of boys, girls, and all children 6-14 not enrolled in any school
+* Proportion 3rd graders who can read std 1 text by govt / private
+* Proportion 5th graders who can read std 2 text by govt / private
+* Proportion 3rd graders who do subtraction by govt / private
+* Proportion 5th graders who do division text by govt / private
+* English attainment for years 2007, 2009, 2012, and 2014 (but I haven't yet processed and imported this data yet)
+
+Of these, I used the ones for class 3 kids:
 
 * share of class 3 kids who can read a std 1 text
 * Share of class 3 kids who can do at least subtraction
 
-These are the only variables available for class 3 kids (though they are also broken up by school type as well) in the trends over time report.
+
 
 ### Setup
 ```{r, results='hide'}
 library(tidyverse)
 dist_path <- "C:/Users/dougj/Documents/Data/Education/ASER District Data/Clean"
 output <- "C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures"
-dists <- read_csv(file.path(dist_path, "aser_district_partial.csv"))
+dists <- read_csv(file.path(dist_path, "aser_district_all_6.csv"))
 
 state_path <- "C:/Users/dougj/Documents/Data/Education/ASER trends over time"
 states <- read_csv(file.path(state_path, "aser_trends.csv")) %>% 
@@ -92,7 +101,7 @@ states <- read_csv(file.path(state_path, "aser_trends.csv")) %>%
 
   
 ##### IMPORTANT: TO DO ALL THE ANALYZE FOR MATH, SET THE SUBJECT BELOW TO "MATH" ### 
-subject <- "math"
+subject <- "reading"
 if (subject == "math") {
   dists$std35_std1_and_up <- dists$std35_subtraction_and_up
   states$std3_reading <- states$std3_math
@@ -263,7 +272,7 @@ Since the correlation of current levels and twice lags is not 0, we don't use th
 
 ## State analysis - method 2
 
-Calculate the share of variance due to persistent effects by look at how correlation in levels decays over time.
+Calculate the share of variance due to persistent effects by look at how correlation in levels decays over time. Note that I could theoretically calculate more lags (since the state data is for 2006 to 2014) but then each lag would be specific to a single year (e.g. 2009-2008) rather than multiple years (the average of 2014-2013, 2013-2012, etc).
 
 ```{r}
 state_lags <- states %>%
