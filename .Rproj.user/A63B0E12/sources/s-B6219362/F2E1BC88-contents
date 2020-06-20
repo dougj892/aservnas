@@ -1,0 +1,104 @@
+---
+title: "Analyse IHDS ASER data"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+# Summary
+This notebook analyses IHDS ASER data to determine whether absent students could affect in-school assessments like the NAS. To do this we run a regression of the ASER score on a variable for the number of days absent from school in the previous month, state dummies, and interactions between the state dummies and the absence variable.  We then inspect the coefficients for the interaction terms and test their joint significance. Lastly, we compare estimates of state averages on the full sample with estimates of state averages where we take into account possible missingness due to absence.
+
+
+### Install packages and import data.
+```{r setup}
+library(tidyverse)
+library(haven)
+```
+
+```{r}
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
+# read in just those variables that i need
+# this is much faster than reading in everything and then selecting
+df <- read_dta(ind_file, col_select = c(STATEID, PSUID, URBAN2011, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, starts_with("CS"), starts_with("TA"), starts_with("ED")) )
+```
+
+### Inspect data
+Inspect the CS13 variable which is self-reported number of days absent from school each month. Only look at observations for which we have ASER score and the child attends a govt or govt aided school.
+```{r}
+attributes(df$CS13)
+# simple tab of CS13 --> note that the max value is 30.
+df %>% filter(!is.na(TA8B)) %>%
+  filter(CS4 == 2 | CS4 == 3) %>%
+  group_by(CS13) %>% 
+  count()
+
+# check that this is not missing for kids with ASER results --> looks like there are only a few NAs
+df %>% filter(!is.na(TA8B)) %>% summarise(non_na_count = sum(!is.na(CS13)), na_count = sum(is.na(CS13)) )
+```
+
+### Graphical analysis of ASER scores by absence
+Compare average ASER score for different levels of absence for kids attending govt schools. First, graph average score vs absence.  Note that there are relatively few kids with absence over 10 so the area of this graph with absence > 10 should probably be ignored.  Second, create histograms of score for each value of absence up to 10. 
+
+
+```{r}
+temp <- df %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
+  filter(CS4 == 2 | CS4 == 3) %>%
+  group_by(CS13) %>% 
+  summarise(ASER_score = weighted.mean(TA8B, WT)) %>% 
+  ungroup() %>%
+  rename(days_absent = CS13)
+ggplot(temp, aes(x = days_absent, y = ASER_score)) + geom_line()
+temp <- df %>% mutate(days_absent_capped = ifelse(CS13 > 10, 10, CS13)) %>% 
+  filter(!is.na(TA8B) & !is.na(days_absent_capped))
+# check that this worked
+temp %>% group_by(days_absent_capped) %>% count()
+
+# the graph below shows the relative frequency of different ASER scores by # days absent
+# note that 10 could be 10 or greater as I have replaced all values of CS13>10 with 10
+ggplot(temp, aes(factor(TA8B), group = factor(days_absent_capped))) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count", fill = "gray") + 
+  scale_y_continuous(labels=scales::percent) +
+  ylab("relative frequencies") +
+  xlab("ASER reading score") +
+  facet_grid(~factor(days_absent_capped))
+```
+
+### Regression of ASER score on absence and state vars
+Regress ASER score on age, absence, state, and state x absence.  Then test the joint significance of all the state x absence terms.
+
+```{r}
+# display the label for each of variables
+vars <- list(df$CS13, df$RO5)
+lapply(vars, FUN = function(x) attributes(x)$label)
+model <- lm(TA8B ~ CS13 + factor(STATEID) + CS13*factor(STATEID) + RO5, data = df)
+library(car)
+linearHypothesis(model, matchCoefs(model, "CS13:"), white.adjust = "hc1")
+library(broom)
+coefs <- tidy(model)
+coefs
+```
+
+### Compare state estimates assuming some students more likely to be absent
+We can also more directly calculate the effect of absence on state scores by comparing estimates of state averages with estimates which take into account potential absence on the day of the assessment. To do this, we create a new weight variable which takes into account the probability that the student would be present on the day of the exam. Our new WT variable is...
+
+$$ newweight = oldweight*\frac{30-daysabsentpermonth}{30} $$ 
+As in previous analyses, we only look at students in govt or private aided schools.
+```{r}
+state_averages <- df %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
+  filter(CS4 == 2 | CS4 == 3) %>%
+  mutate(new.weight = WT*(30-CS13)/30) %>%
+  group_by(STATEID) %>% 
+  summarise(full_sample = weighted.mean(TA8B, WT), absence_weighted = weighted.mean(TA8B, new.weight), 
+            diff = full_sample-absence_weighted)
+
+state_averages$full_rank[order(state_averages$full_sample)] <- 1:nrow(state_averages)
+state_averages$absence_rank[order(state_averages$absence_weighted)] <- 1:nrow(state_averages)
+state_averages
+
+```
+
+
+
+

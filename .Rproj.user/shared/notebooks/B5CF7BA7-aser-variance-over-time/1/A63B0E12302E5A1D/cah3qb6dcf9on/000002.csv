@@ -1,0 +1,6 @@
+"0","# "
+"0","corr_dist_dbl_lag <- dist_deltas %>% filter(year >= 2009) %>%"
+"0","  ungroup() %>%"
+"0","  summarize(auto =cor(delta,delta_dbl_lag, use = ""pairwise.complete.obs"")) %>%"
+"0","  .$auto"
+"0",""

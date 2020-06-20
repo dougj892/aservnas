@@ -1,0 +1,9 @@
+"0","```r
+library(ggrepel)
+library(ggthemes)
+
+ggplot(subset(infra, str_detect(region, \"East Asia\")), aes(x = ease_id, y = ease_pay, label = code, colour = ct_response)) + 
+  geom_point(size = 2) + 
+  geom_text_repel(key_glyph = \"rect\") +
+  labs(x = \"Ease of identifying beneficiaries\", y = \"Ease of delivering payment\", title = \"Cash transfer response\", colour = \"Cash transfer response\") + theme_classic()
+```"

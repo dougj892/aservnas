@@ -1,0 +1,25 @@
+{
+    "id": "B1CF212F",
+    "path": "~/code/aservnas/aser-variance-over-time.Rmd",
+    "project_path": "aser-variance-over-time.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1592566094858.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "chunk_output_type": "inline",
+        "cursorPosition": "17,47",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1592632794,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1592632794205,
+    "read_only": false,
+    "read_only_alternatives": []
+}

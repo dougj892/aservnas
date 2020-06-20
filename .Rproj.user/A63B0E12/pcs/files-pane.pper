@@ -1,9 +1,9 @@
 {
-    "path" : "~/code/notebooks/Education in India/aservnas",
-    "sortOrder" : [
+    "path": "~/code/aservnas",
+    "sortOrder": [
         {
-            "ascending" : true,
-            "columnIndex" : 2
+            "columnIndex": 2,
+            "ascending": false
         }
     ]
 }

@@ -1,0 +1,21 @@
+"0","```r
+# reshape to long
+# drop states which don't have any data for grade 3. This frees up some space in the graph
+states_long <- states %>% 
+  filter(!is.na(std3_read_std1_pvt) & !is.na(std3_subtract_pvt)) %>% 
+  select(state_abbr, year, starts_with(\"std\")) %>%
+  pivot_longer(cols = starts_with(\"std\"), names_to = \"series\", values_to = \"pct\") %>% 
+  mutate(grade = str_extract(series, \"\\d\"), 
+         sector = str_extract(series, \"(govt)|(pvt)|(all)\"),
+         subject = str_extract(series, \"(read)|(subtract)|(divis)\")) 
+
+states_long$subject <- recode(states_long$subject, \"subtract\" = \"math\", \"divis\" = \"math\", \"read\"= \"reading\")
+
+states_long_3 <- states_long %>% filter((grade == \"3\") & (sector != \"all\"))
+
+ggplot(states_long_3, aes(x= year,  y = pct, group = sector, color = sector)) +
+  geom_line() +
+  facet_grid(subject ~ state_abbr) + 
+  theme(axis.text.x = element_blank()) +
+ggsave(\"state learning outcomes.png\", width = 30, height = 10, units = \"cm\", path = output)
+```"

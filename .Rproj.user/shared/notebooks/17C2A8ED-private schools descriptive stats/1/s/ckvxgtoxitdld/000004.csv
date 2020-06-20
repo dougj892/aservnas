@@ -1,0 +1,10 @@
+"0","```r
+
+country_enrol <- country %>% 
+  select(-pvt) %>% 
+  pivot_longer(cols = starts_with(\"pvt\"), names_to = \"gender\", values_to = \"proportion\")
+
+ggplot(country_enrol, aes(x =year, y =proportion, group = gender, color = gender)) +
+  geom_line() + geom_point()
+
+```"

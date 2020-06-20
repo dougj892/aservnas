@@ -1,0 +1,74 @@
+---
+title: "Prediction model for IHDS ASER"
+output: html_notebook
+---
+
+## Summary
+This notebook uses machine learning to assess whether household variables would be useful in imputing learning outcomes data.  In particular, I attempt to build a model to predict ASER scores and then test these predictions on a held out sample.
+
+## Workflow
+1. Split dataset into train and test (90/10 split since the dataset is large)
+2. Run multinomial logit and linear regression with LASSO. (there is no obvious way to run ordered logit with LASSO)
+2. Use cross validation to select best level of lambda for each
+3. Run multi logit and linear regression on full training dataset for optimal level of lambda.
+4. Get the list of variables selected from each model.
+5. Run ordered logit with the two lists of variables.
+6. Of the 3 models run on the full training dataset (multi logit, linear, and ordered logit), go with the one with the highest accuracy
+7. Test 
+
+## Remaining stuff to do
+This notebook is not yet complete. Immediate next steps include:
+
+1. Filter for instances where TA8B is not missing
+2. Drop any variables which are all NA (or more than 10% NA)
+2. Do a quick search and remove any other variables which don't make sense
+3. Impute medians for all remaining variables
+4. Figure out how to specify lm and mnl in glmnet (perhaps it just assumes mnl if y var is a factor)
+
+
+### Install packages and load data
+
+```{r setup}
+library(tidyverse)
+library(mlbench)
+library(caret)
+library(rsample)
+library(Metrics)
+library(sjmisc)
+```
+
+```{r}
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
+# read in just those variables that i need
+# this is much faster than reading in everything and then selecting
+df <- read_dta(ind_file, col_select = c(STATEID, starts_with("RO"), starts_with("CS"), starts_with("TA"), starts_with("ED")))
+df <- df %>% mutate(state = factor(STATEID)) %>% select(-STATEID)
+# df <- read_dta(ind_file, col_select = c(STATEID, PSUID, URBAN2011, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, starts_with("CS"), starts_with("TA"), starts_with("ED")) )
+```
+
+### Process dataset and split
+
+```{r}
+
+data_split <- initial_split(df, prop = .9)
+training_data <- training(data_split)
+test_data <- testing(data_split)
+```
+
+### Run multi logit and linear, both with LASSO
+```{r}
+model <- train(
+  TA8B ~.,
+  training_data,
+  method = "glmnet",
+  tuneGrid = expand.grid(
+    alpha = 1,
+    lambda = seq(0.0001,1, length = 20)
+  ),
+  trControl = trainControl(
+    method = "cv",
+    number = 10
+  )
+)
+```

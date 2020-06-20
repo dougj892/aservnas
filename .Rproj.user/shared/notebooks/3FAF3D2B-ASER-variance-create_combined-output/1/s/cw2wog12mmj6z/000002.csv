@@ -1,0 +1,180 @@
+"0","file_type <- c(""rho"", ""corr dbl"", ""var deco"", ""bar data"")"
+"0","tables <- list()"
+"0","for (i in seq_along(file_type)) {"
+"0","  tables[[file_type[i]]] <- tibble(path = list.files(path = int_path, pattern = file_type[i])) %>% "
+"0","  rowwise() %>% "
+"0","  summarise(read_csv(file.path(int_path, path))) "
+"0","  write_csv(tables[[i]], file.path(output, paste(file_type[i], "".csv"")))"
+"0","}"
+"2","Parsed with column specification:
+cols(
+  rho = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  lag = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  rho = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  lag = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  rho = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  lag = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  rho = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  lag = [32mcol_double()[39m
+)
+"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"2","Parsed with column specification:
+cols(
+  level = [31mcol_character()[39m,
+  values = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  level = [31mcol_character()[39m,
+  values = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  level = [31mcol_character()[39m,
+  values = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  level = [31mcol_character()[39m,
+  values = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  Persistent = [32mcol_double()[39m,
+  `Transitory sampling` = [32mcol_double()[39m,
+  `Transitory other` = [32mcol_double()[39m,
+  total_var = [32mcol_double()[39m,
+  share_pers = [32mcol_double()[39m,
+  share_samp = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  Persistent = [32mcol_double()[39m,
+  `Transitory sampling` = [32mcol_double()[39m,
+  `Transitory other` = [32mcol_double()[39m,
+  total_var = [32mcol_double()[39m,
+  share_pers = [32mcol_double()[39m,
+  share_samp = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  Persistent = [32mcol_double()[39m,
+  `Transitory sampling` = [32mcol_double()[39m,
+  `Transitory other` = [32mcol_double()[39m,
+  total_var = [32mcol_double()[39m,
+  share_pers = [32mcol_double()[39m,
+  share_samp = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m,
+  Persistent = [32mcol_double()[39m,
+  `Transitory sampling` = [32mcol_double()[39m,
+  `Transitory other` = [32mcol_double()[39m,
+  total_var = [32mcol_double()[39m,
+  share_pers = [32mcol_double()[39m,
+  share_samp = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  bar_part = [31mcol_character()[39m,
+  value = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  bar_part = [31mcol_character()[39m,
+  value = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  bar_part = [31mcol_character()[39m,
+  value = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  state_or_dist = [31mcol_character()[39m,
+  changes_or_levels = [31mcol_character()[39m,
+  bar_part = [31mcol_character()[39m,
+  value = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  state_grade = [32mcol_double()[39m
+)
+"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"

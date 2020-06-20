@@ -1,0 +1,23 @@
+"0","# import ASER and NAS data"
+"0","aser_nas <- read_csv(""https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%202018%20and%20NAS%202017%20govt%20school%20grade%203%20reading.csv"")"
+"2","Parsed with column specification:
+cols(
+  State = [31mcol_character()[39m,
+  state_abbr = [31mcol_character()[39m,
+  ASER_2012 = [32mcol_double()[39m,
+  ASER_2014 = [32mcol_double()[39m,
+  ASER_2016 = [32mcol_double()[39m,
+  ASER_2018 = [32mcol_double()[39m,
+  NAS = [32mcol_double()[39m,
+  aser_rank = [32mcol_double()[39m,
+  nas_rank = [32mcol_double()[39m
+)
+"
+"0","# Create graph"
+"0","ggplot(data = aser_nas,aes(x=aser_rank,y=nas_rank,label= state_abbr)) +"
+"0","  geom_abline(intercept = 0, slope = 1, color=""orange"")  +"
+"0","  geom_point(color=""darkblue"")  +"
+"0","  theme_bw() + "
+"0","  labs(title=""State Rankings Based on Language Results for Std III Students (Rural)"", x = ""Rank in ASER (2018)"", y = ""Rank in NAS (2017)"") + "
+"0","   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor = element_blank(), panel.grid.major = element_line(colour = ""gray"",size=0.1)) + "
+"0","  geom_label_repel() "

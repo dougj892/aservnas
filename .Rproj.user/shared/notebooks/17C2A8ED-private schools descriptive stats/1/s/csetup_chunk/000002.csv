@@ -1,0 +1,15 @@
+"0","```r
+library(tidyverse)
+```"
+"0","```r
+library(broom)
+data_path <- \"C:/Users/dougj/Documents/Data/Education\"
+output <- \"C:/Users/dougj/Dropbox/Education in India/Original research/Private schools/output\"
+states <- read_csv(file.path(data_path, \"ASER trends over time\", \"aser_trends.csv\"))
+```"
+"0","```r
+country <- read_csv(file.path(data_path, \"ASER trends over time\", \"aser_trends_national.csv\")) 
+```"
+"0","```r
+dists <- read_csv(file.path(data_path, \"ASER District Data/Clean\", \"aser_district_5_or_6.csv\"))
+```"

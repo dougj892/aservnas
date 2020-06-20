@@ -1,150 +1,97 @@
 ---
-title: "Compare ASER, NAS, and IHDS"
-output: html_notebook
+title: "Comparison of ASER, NAS, and IHDS"
+theme: yeti
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+
 ---
 
-# Summary
-This notebook compares ASER 2018 data, NAS 2017 data, and IHDS 2012 data.  ASER and NAS differ in both sampling and the assessment tool used. I provide a brief recap of ASER and NAS and then discuss what data is used for this comparison. The ASER Centre has put together a comparison of the two surveys [here](https://img.asercentre.org/docs/Bottom%20Panel/Key%20Docs/nas_stdvvs_aser.pdf)
+This notebook performs calculations and creates graphs for the section "Comparison of ASER, NAS, and IHDS" in the paper "Assessing the Assessments: Taking Stock of Learning Outcomes Data in India."
 
-## ASER
-1. Frequency
-    1. Basic survey conducted every other year
-2. Sampling
-    1. Only rural areas covered
-    2. In each rural district, 30 villages are selected using PPS.  In each village, 20 households are selected using the right-hand rule
-    3. Survey is conducted at home rather than in school. Thus, results not affected by enrollment / attendance.
-    4. All children 5-16 years old, regardless of school enrollment, are administered the assessment. (In addition, data on enrollment is collected for 3 and 4 year olds
-3. Data collected
-    1. Assessment tests basic reading and math.  
-        a. Read levels are not even letters, letters, word, std 1 text, std 2 text
-        b. Math levels are not even 1-9, 1-9 numbers, 10-99 numbers, substract, and divide
-    2. Basic household details and school attendance (e.g. whether public or private) also collected
-4. Other
-    1. ASER is carried out through local partners who rely on volunteers
-    2. There are some internal and third party checks, but these seem to be pretty minimal
-    3. The assessment is administered one-on-one by the enumerators who read out the questions to the child being assessed.
-    4. ASER uses weights when calculating state and national figures
+Others who would like to run this notebook locally will need to:
 
-
-## NAS
-NCERT has been conducting NAS since 2001 but in previous years they only collected data for a single grade at a time. (For example, they collected data for class 5 in academic year 2001-02, for class 8 in academic year 2002-03, and for class 3 in academic year 2003-04.  See [here](http://www.ncert.nic.in/programmes/NAS/pdf/DRC_report.pdf) page 6 for more info.) In addition, the sample sizes in previous years were smaller (they were only intended to be representative at the state level) and the assessment tool used was different. More details of NAS 2017 can be found [here](http://www.ncert.nic.in/programmes/NAS/Training.html). In particular, the following documents are partiularly useful:
-
-* [FAQ](http://www.ncert.nic.in/programmes/NAS/pdf/NAS_FrequentlyAsked_Questions.pdf)
-* [Field investigator module for test administration](http://www.ncert.nic.in/programmes/NAS/pdf/Module_Administration_Field_Investigators.pdf) 
-* [District training module](http://www.ncert.nic.in/programmes/NAS/pdf/NAS_District_Workshop_Module.pdf)
-* [Operational guidelines cum training manual](http://www.ncert.nic.in/programmes/NAS/pdf/Operational_Guidelines_Training_Manual.pdf)
-
-
-1. Frequency
-    1. Previous versions of the NAS were carried out every year.  There has only been one instance in which NAS has been carried out in its current form (in 2017)
-2. Sampling
-    1. Schools are selected from UDISE using PPS (according to the ASER note on the NAS)
-    2. Includes both government and government aided 
-    2. Grades 3, 5, and 8 covered
-    3. If there is more than one section for grades 3, 5, or 8 then one section was randomly selected. (See bottom of page 7 of FAQ)
-    4. If a section has more than 30 students, then roughly 30 students randomly selected. The method for randomly selecting students appears to be well thought and clearly documented in field investigator module.
-3. Data collected
-    1. Test language, math, and environmental science
-    2. Seems like they also collect basic data about the school
-4. Implementation
-    1. NCERT is responsible for designing the survey tools and quality assurance. (See roles and functions of different stakeholders in FAQ) 
-    2. States are responsible for translating the test into regional languages
-    3. The test is a paper and pencil test. Students fill out a paper questionnaire and then the field investigators tallies responses on an OMR sheet.  
-    4. Government school teachers cannot be field investigators. Ideally, DIET students should be field investigators but B.Ed or M.Ed students can only serve as FIs. (See FAQ and FI module)
-    5. Field investigators visit schools on a prep day to meet the teachers and fill the school and teacher questionnaires. The assessment is done on a second day (which was November 17th for all districts across the country).
-    6. The test is paper and pencil. Field investigators read questions aloud (but do not read the passage in the reading comprehension book). 
-    7. According to the field investigator module, the field investigatores "after administration of tests, fill up the PQ by
-interview mode for each student one by one"
-    8. It seems like only class 8 students directly fill OMR sheets and that class 3 and 5 students instead mark in the test booklet. (page 14 and 15 of field investigator module)
-4. Other
-    1. Estimates are not weighted (actual enrollment varied quite a bit from figures in USIDE so ideally should have used weights)
-    
-## Comparing ASER and NAS
-Andres copied NAS data from [here](http://nas.schooleduinfo.in/dashboard/nas_ncert#/).  I copied the ASER data from table 5 in the 2018 ASER report. To make the data as comparable as possible...
-
-* ASER data is for class 3 students able to read a standard 2 text. Only government school students are included.
-* NAS data is only for rural areas for class 3 students. (The website above breaks down results for rural / urban). The NAS language assessment for class 3 tests competencies L312 and L304. L304 is "Reads small texts with comprehension i.e., identifies main ideas, details, sequence and draws conclusion". L312 is "Reads printed scripts on the classroom walls: poems, posters, charts etc". Unclear how the two data points are combined.
-
-Note that even with these corrections, there are still a lot of ways in which ASER and NAS differ. The biggest difference is that ASER is representative of all children enrolled in govt schools while NAS is representative only of children who showed up on the day of the assessment.  In addition, the assessment itself varies quite a bit. (And the ASER exam suggests that the pen and paper exam )
+1. Install the relevant R packages
+2. Download the stata version of the individual level dataset from IHDS round 2. This dataset can be downloaded from [this page](https://www.icpsr.umich.edu/web/ICPSR/studies/36151?q=india+human+development+survey&searchSource=icpsr-landing#). The name of the dataset should be "36151-0001-Data.dta".
+3. Change the paths in the setup chunk
 
 ```{r setup}
-library(tidyverse)
-library(haven)
-library(survey)
-path <- "C:/Users/dougj/Documents/Data/Education"
-figures <- "C:/Users/dougj/Documents/Education in India/Original research/Learning outcomes data/figures"
+library(tidyverse); library(haven); library(survey); library(ggrepel)
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+figures <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
 ```
 
-
+# Graphs of state rankings on ASER vs NAS
 
 ```{r}
+# import ASER and NAS data
+aser_nas <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%202018%20and%20NAS%202017%20govt%20school%20grade%203%20reading.csv")
 
-library(ggrepel)
-
-### Rank comparison
-main_data <- read_csv(file.path(path, "ASER 2018 and NAS 2017 govt school grade 3 reading_corrected.csv"))
-ggplot(data = main_data,aes(x=aser_rank,y=nas_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
-  geom_abline(intercept = -6, slope = 1, color="gray", lwd=1, lty=2) +
-  geom_abline(intercept = 6, slope = 1, color="gray", lwd=1, lty=2) +
+# Create graph
+ggplot(data = aser_nas,aes(x=aser_rank,y=nas_rank,label= state_abbr)) +
+  geom_abline(intercept = 0, slope = 1, color="orange")  +
   geom_point(color="darkblue")  +
-  theme_bw() + labs(title="State Rankings Based on Language Results for Std III Students (Rural)", 
-                    x = "Rank in ASER (2018)", y = "Rank in NAS (2017)") + 
-   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
-   panel.grid.major =   element_line(colour = "gray",size=0.1)) + geom_label_repel() 
+  theme_bw() + 
+  labs(title="State Rankings Based on Language Results for Std III Students (Rural)", x = "Rank in ASER (2018)", y = "Rank in NAS (2017)") + 
+   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor = element_blank(), panel.grid.major = element_line(colour = "gray",size=0.1)) + 
+  geom_label_repel() 
 
+# Save graph
 ggsave("aser_nas_lang_ranking.png", width = 9, height = 6 , path = figures)
 
 ```
 
-## ASER and NAS vs GDP
-Given the huge variation in state GDP per capita, one would expect that there would be some correlation in GPD per capita and learning outcomes. Surprisingly, this is not the case.
+# ASER and NAS vs NSDP
+Given the huge variation in state GDP per capita, one would expect that there would be some correlation in NSDP per capita and learning outcomes. Surprisingly, this is not the case.
 
 ```{r}
-setwd("C:/Users/dougj/Documents/Data/Education")
-gdp <- read_csv("state GDP per capita.csv")
-df <- main_data %>% left_join(gdp, by = "State")
-print(paste("Number of unmatched states", sum(is.na(df$`NSDP per capita`))))
-df$gdp_rank <- NA
-df$gdp_rank[order(df$`NSDP per capita`, decreasing = TRUE)] <- 1:nrow(df)
+# Import NSDP data
+nsdp <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/state%20GDP%20per%20capita.csv")
 
-temp <- df %>% select(ASER_2018, 'NSDP per capita', NAS)
+# Merge NSDP data with ASER and NAS data
+aser_nas_nsdp <- aser_nas %>% left_join(nsdp, by = "State")
+
+# Check that there are no states which didn't match
+print(paste("Number of unmatched states", sum(is.na(aser_nas_nsdp$`NSDP per capita`))))
+
+# Create a ranking for NSDP
+aser_nas_nsdp$gdp_rank <- NA
+aser_nas_nsdp$gdp_rank[order(aser_nas_nsdp$`NSDP per capita`, decreasing = TRUE)] <- 1:nrow(aser_nas_nsdp)
+
+# Calculate pairwise correlations for the 3 datasets
+temp <- aser_nas_nsdp %>% select(ASER_2018, 'NSDP per capita', NAS)
+print("Pearson (regular) correlation:")
 cor(temp, method = "pearson", use = "pairwise.complete.obs")
+print("Spearman (rank) correlation")
 cor(temp, method = "spearman", use = "pairwise.complete.obs")
 
-# formal test for correlation
+# Calculate correlations with p-values for null rho = 0
 cor.test(temp$ASER_2018,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "pearson")
 cor.test(temp$ASER_2018,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "spearman")
 cor.test(temp$NAS,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "pearson")
 cor.test(temp$NAS,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "spearman")
 
-ggplot(data = df,aes(x= gdp_rank,y=nas_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
-  geom_point(color="darkblue")  +
-  theme_bw() + labs(title="NAS vs GDP", 
-                    x = "GDP rank", y = "Rank in NAS (2017)") + 
-   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
-   panel.grid.major =   element_line(colour = "gray",size=0.1)) + geom_label_repel() 
-
-
 ```
+# Correlation between ASER grade 3 reading and math
 
 ```{r}
-ggplot(data = df,aes(x= gdp_rank,y=aser_rank,label= State)) + geom_abline(intercept = 0, slope = 1, color="orange")  +
-  geom_point(color="darkblue")  +
-  theme_bw() + labs(title="ASER vs GDP", 
-                    x = "GDP rank", y = "Rank in ASER (2018)") + 
-   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor =   element_blank(),
-   panel.grid.major =   element_line(colour = "gray",size=0.1)) + geom_label_repel() 
+aser_trends <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%20trends%20over%20time.csv")
 
+corrs <- aser_trends %>% 
+  group_by(year) %>% 
+  summarise(pearson = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="pearson"),
+            spearman = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="spearman"))
+
+corrs %>% summarise_all(mean, na.rm = TRUE)
 ```
 
-## Compare ASER, NAS, and IHDS
-While ASER and NAS use different assessments, based on their descriptions it seems like the reading components of each assessment seeks to measure about the same thing. Therefore, it is useful to compare the average scores (as opposed to ranks) of each assessment for each state.
-
-### Calculate IHDS scores by state. 
+# Calculate IHDS scores by state. 
 Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural (URBAN2011 == 0) govt school (CS4 ==2) or private aided (CS4 == 3) students in grades 2 to 5 (there are too few students if we restrict only to grade 3) by state. *warning: this code takes a long time* 
 
 ```{r}
-ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
 ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
 # read in just those variables that i need
 # this is much faster than reading in everything and then selecting
@@ -183,22 +130,21 @@ ihds_scores$ihds <- round(ihds_scores$ihds, 3)*100
 
 ```
 
-## Calculate correlations 
+# Correlation between IHDS and ASER / NAS
 
 ```{r}
-aser_nas <- main_data %>% select(State, ASER_2018, NAS)
-scores <- aser_nas %>% full_join(ihds_scores, by = "State")
+scores <- aser_nas %>% select(State, ASER_2018, NAS) %>% 
+  full_join(ihds_scores, by = "State")
 
 # drop if IHDS_ASER is NA
 # scores <- scores %>% filter(!is.na(IHDS_ASER)) %>% arrange(ASER) %>% select(State, ASER, IHDS_ASER, NAS, obs)
 
 # calculate correlation matrix --> while there are a few outliers, overall the ASER data and IHDS data match Ok
-# note that 
 temp <- scores %>% select(ASER_2018, ihds, NAS)
 cor(temp, method = "pearson", use = "pairwise.complete.obs")
 cor(temp, method = "spearman", use = "pairwise.complete.obs")
 
-# conduct formal correlation test
+# Same as above, but with p-values
 cor.test(temp$NAS,temp$ihds, use = "pairwise.complete.obs", method = "pearson")
 cor.test(temp$ASER_2018,temp$ihds, use = "pairwise.complete.obs", method = "pearson")
 cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "pearson")
@@ -209,24 +155,7 @@ cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "spear
 
 ```
 
-Create graph showing IHDS, ASER, and NAS all on same scale.
-
-```{r}
-
-scores.long <- scores %>% select(State, ASER_2018, NAS, ihds) %>%
-  rename(IHDS = ihds) %>%
-  filter(!is.na(ASER_2018) & !is.na(NAS)) %>%
-  gather(Assessment, avg_score, -State) 
-
-ggplot(data = scores.long, aes(x= reorder(State, avg_score),y=avg_score, fill= Assessment)) + 
-  geom_bar(stat = "identity", position = position_dodge(width=.8)) + 
-  theme(axis.text.x = element_text(angle=90)) + 
-  scale_fill_manual(values = c("lightblue", "blue", "darkblue"))+
-  labs(y = "Average score", x = "")
-
-```
-
-Attempt to create the same bar but with standard errors for IHDS. 
+# Graph of ASER, NAS, and IHDS
 
 
 ```{r}
@@ -259,25 +188,9 @@ ggplot(data = scores.long2, aes(x= reorder(State, avg_score),y=avg_score, fill= 
   geom_errorbar(aes(ymin = ymin, ymax = ymax), width = .1) + 
   theme(axis.text.x = element_text(angle=90)) + 
   scale_fill_manual(values = c("lightblue", "blue", "darkblue"))+
-  labs(y = "Average score", x = "")
+  labs(y = "Average score", x = "", title = "ASER, NAS, and IHDS", caption = "Bars on IHDS estimates show 95% confidence intervals.")
 ggsave("aser_nas_ihds_values.png", width = 9, height = 6 , path = figures)
 ```
 
 
-Show line graphs of ASER class 3 reading scores for govt school students over time.
-
-```{r}
-# reshape the main data
-scores.long3 <- main_data %>% 
-  select(State, starts_with("ASER")) %>% 
-  select(-aser_rank) %>%
-  gather(key ="Temp", value= "Reading", -State) %>%
-  separate(Temp, sep = "_", into = c("dummy","Year"))
-
-ggplot(data = scores.long3, aes(x=Year, y=Reading, color=State)) +
-  geom_line(aes(group=State))
-
-ggsave("aser_over_time.png", path = figures)
-
-```
 

@@ -1,0 +1,11 @@
+"0","states <- read_csv(""https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%20trends%20over%20time.csv"")
+"
+"2","Parsed with column specification:
+cols(
+  .default = col_double(),
+  State = [31mcol_character()[39m,
+  state_abbr = [31mcol_character()[39m
+)
+"
+"2","See spec(...) for full column specifications.
+"

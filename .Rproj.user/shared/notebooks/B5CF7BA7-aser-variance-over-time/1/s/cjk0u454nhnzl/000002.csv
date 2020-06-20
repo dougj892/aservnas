@@ -1,0 +1,41 @@
+"0","library(tidyverse)"
+"0","output <- ""C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"""
+"0",""
+"0","dists <- read_csv(""https://raw.githubusercontent.com/dougj892/public-datasets/master/aser_district_all_6.csv"")"
+"2","Parsed with column specification:
+cols(
+  State = [31mcol_character()[39m,
+  state_abbr = [31mcol_character()[39m,
+  District = [31mcol_character()[39m,
+  year = [32mcol_double()[39m,
+  std12_letters_and_up = [32mcol_double()[39m,
+  std12_numbers_and_up = [32mcol_double()[39m,
+  std35_std1_and_up = [32mcol_double()[39m,
+  std35_subtraction_and_up = [32mcol_double()[39m,
+  private_6_14 = [32mcol_double()[39m,
+  out_of_school_6_14 = [32mcol_double()[39m,
+  in_school_3_4 = [32mcol_double()[39m
+)
+"
+"0","states <- read_csv(""https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%20trends%20over%20time.csv"") %>% "
+"0","  select(year, State, state_abbr, ends_with(""all"")) "
+"2","Parsed with column specification:
+cols(
+  .default = col_double(),
+  State = [31mcol_character()[39m,
+  state_abbr = [31mcol_character()[39m
+)
+"
+"2","See spec(...) for full column specifications.
+"
+"0","  "
+"0","##### IMPORTANT: SET SUBJECT TO BE USED FOR THE ENTIRE ANALYSIS HERE ### "
+"0","subject <- ""math"""
+"0","state_grade <- 5"
+"0",""
+"0","if (subject == ""math"") {"
+"0","  dists$score <- dists$std35_subtraction_and_up"
+"0","  if (state_grade ==3) {"
+"0","    states$score <- states$std3_subtract_all"
+"0","  } else if (state_grade ==5) {"
+"0","    states$score <- states$std5_divis_all"

@@ -1,0 +1,13 @@
+"0","```r
+country_long <- country %>% 
+  pivot_longer(cols = starts_with(\"std\"), names_to = \"subject_year\", values_to = \"proportion\") %>% 
+  mutate(grade = str_extract(subject_year, \"\\d\"), 
+         sector = str_extract(subject_year, \"(govt)|(pvt)|(all)\"),
+         subject = str_extract(subject_year, \"(read)|(subtract)|(divis)\")) 
+
+country_long$subject <- recode(country_long$subject, \"subtract\" = \"math\", \"divis\" = \"math\", \"read\"= \"reading\")
+
+ggplot(country_long, aes(x = year, y = proportion, group = sector, colour = sector)) +
+  geom_line() + geom_point() +
+  facet_grid(subject ~ grade)
+```"

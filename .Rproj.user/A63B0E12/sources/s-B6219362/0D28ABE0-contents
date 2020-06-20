@@ -1,0 +1,139 @@
+---
+title: "ASER variance - create combined graphs"
+theme: yeti
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+---
+
+This notebook uses data outputs from the "ASER variance over time" notebook to create a combined graph showing variance decomposition for all subject + grade + district/state + change/level combinations.
+
+In addition, it also saves various other tables used in the working paper and simulates the effect of noise on state ranking.
+
+```{r setup}
+library(tidyverse)
+int_path <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures/intermediate"
+output <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
+```
+
+# Import all data and save as csv
+
+Import all of the data and save as csv files.
+
+```{r, results='hide'}
+file_type <- c("rho", "corr dbl", "var deco", "bar data")
+tables <- list()
+for (i in seq_along(file_type)) {
+  tables[[file_type[i]]] <- tibble(path = list.files(path = int_path, pattern = file_type[i])) %>% 
+  rowwise() %>% 
+  summarise(read_csv(file.path(int_path, path))) 
+  write_csv(tables[[i]], file.path(output, paste(file_type[i], ".csv")))
+}
+
+```
+
+# Create combined var decomposition graph
+```{r}
+bar_data <- tables[["bar data"]] %>% 
+  filter(!((state_or_dist == "District") & (state_grade == 5))) %>% 
+  mutate(state_or_dist = paste(state_or_dist, "grade", state_grade))
+
+# Change the bar_part variable to an ordered factor
+bar_data <- bar_data %>%
+  mutate(bar_part_ordered = factor(bar_part, ordered = TRUE, levels = c("Transitory other","Transitory sampling", "Persistent")))
+
+
+ggplot(bar_data, aes(fill = bar_part_ordered, y=value, x= changes_or_levels)) +
+  geom_bar(position="stack", stat ="identity") +
+  facet_grid( subject ~ state_or_dist) + 
+  scale_fill_manual(values = c("red", "orange", "blue"))+
+  labs(fill = "Variance component", x = "", y = "Variance") 
+
+ggsave("Combined bar chart.png", width = 7, height = 6 , path = output)
+```
+Using the estimates from the variance decomposition, use simulation to estimate the effect this would have on the accuracy of splitting up states into bottom quartile, middle 50%, and top quartile
+
+
+# Simulate effect of noise on ranking
+
+Using the estimates from the variance decomposition, use simulation to estimate the effect this would have on the accuracy of splitting up states into bottom quartile, middle 50%, and top quartile.
+
+!! WARNING: THE CODE BELOW IS STILL PRETTY MESSY. TAKE CARE IN USING IT.
+
+
+```{r}
+
+# Inputs
+n <- 100000
+centile <- .25
+subject <- "math"
+levels_changes <- "Changes"
+state_dist <- "District"
+grade <- 3
+dist_type <- "normal"
+
+
+# Read in and grab the appropriate variance figures
+df <- tables[["var deco"]] %>% 
+  filter((state_or_dist == state_dist) & (changes_or_levels == levels_changes) & (state_grade == grade))
+
+var_pers <- df$Persistent[1]
+var_trans <- df$`Transitory sampling`[1] + df$`Transitory other`[1]
+
+print(var_pers/var_trans)
+```
+
+
+```{r}
+
+# Create a dataframe of draws using the estimates of variance and the appropriate distribution type
+
+if (dist_type == "normal"){
+  draws <- data.frame(pers = rnorm(n, mean = 0, sd = var_pers^.5),
+             trans = rnorm(n, mean = 0, sd = var_trans^.5))
+  
+} else if (dist_type == "beta") {
+  # with the beta, var = shape1*shape2 / [(shape1+shape2)^2*(shape1 + shape2 + 1)]
+  # note that if mean = .5 then shape1 =  shape2 with the beta.  
+  # Thus, to simplify things, I assume that the mean is .5.
+  # With this simplification, var = shape^2/[4shape^2*(2*shape+1)]=1/[8*shape+4]
+  # and shape = (1/8*var)-.5
+    
+  shape_pers <- (1/(8*var_pers))-.5
+  shape_trans <- (1/(8*var_trans))-.5
+  draws <- data.frame(pers = rbeta(n, shape_pers, shape_pers),
+               trans = rbeta(n, shape_trans, shape_trans))
+} else {
+  print("Couldn't match dist type")
+}
+
+# Create y, which is the measured score
+draws <- draws %>% mutate(y = pers +trans)
+# Create rank of measured score
+draws$y_rank[order(draws$y)] <- 1:nrow(draws)
+# Create rank of "true" score
+draws$pers_rank[order(draws$pers)] <- 1:nrow(draws)
+# Create binaries for whether true and measured scores are in the top centile
+draws <- draws %>%
+  mutate(top_cent_pers = (pers_rank > (1-centile)*n), top_cent_y = (y_rank > (1-centile)*n))
+
+# Calculate accuracy as the percentage of actual 
+accuracy <- mean(draws$top_cent_pers[draws$top_cent_y])
+cat("Reporting accuracy as the proportion of those actually in the top centile which would be ranked as being in the top centile.\n\n")
+cat("Inputs:::: \n")
+cat("centile: ", centile, "\n")
+cat("Distribution: ", dist_type, "\n")
+cat("States or districts: ", state_dist, "\n")
+cat("Subject: ", subject, "\n")
+cat("Deltas or levels:", levels_changes, "\n\n")
+
+cat("accuracy is", accuracy)
+
+```
+
+
+
+

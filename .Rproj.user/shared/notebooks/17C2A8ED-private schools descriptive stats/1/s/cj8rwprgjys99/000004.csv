@@ -1,0 +1,9 @@
+"0","```r
+
+# ggsave(\"state_enrolment.png\", width = 20, height = 5, units = \"cm\", path = output)
+
+ggplot(states, aes(x = year, y = pvt_boys-pvt_girls)) +
+  geom_line() +
+  theme(axis.text.x = element_blank())+
+  facet_wrap( ~ state_abbr, nrow = 3)
+```"

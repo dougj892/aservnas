@@ -1,0 +1,158 @@
+---
+title: "Estimate effect of absence on NAS scores using IHDS"
+theme: yeti
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+
+---
+# Summary
+This notebook analyses IHDS ASER data to determine whether absent students could affect in-school assessments like the NAS. To do this we...
+
+1. Run a regression of the ASER score on a variable for the number of days absent from school in the previous month, state dummies, and interactions between the state dummies and the absence variable.  We then inspect the coefficients for the interaction terms and test their joint significance. 
+2. Compare estimates of state averages on the full sample with estimates of state averages where we take into account possible missingness due to absence.
+
+Note that much of this analysis performed in this notebook is not included in the working paper but I am keeping it here since it may be useful later.
+
+
+```{r setup}
+library(tidyverse)
+library(ggrepel)
+library(haven)
+library(survey)
+library(car)
+library(broom)
+library(stargazer)
+figures <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
+```
+
+
+# Read data and set the survey design
+```{r}
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
+# read in just those variables that i need
+# this is much faster than reading in everything and then selecting
+ihds <- read_dta(ind_file, col_select = c(STATEID, DISTID, PSUID, URBAN2011, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, starts_with("CS"), starts_with("TA"), starts_with("ED")) )
+
+# create a variable for whether highest language level achieved
+ihds <- ihds %>% mutate(ASER4 = (TA8B ==4)) %>% mutate(State = as_factor(STATEID), Class = as_factor(TA4))
+
+# drop the one row with missing values for weights
+ihds <- ihds %>% filter(!is.na(WT))
+ihds <- ihds %>% mutate(psu_expanded = paste(STATEID, DISTID, PSUID, sep ="-"), hh_expanded = paste(STATEID, DISTID, PSUID, HHID, HHSPLITID, sep ="-"))
+
+# Specify the survey design
+ihds_svy <- svydesign(id =~ psu_expanded + hh_expanded, weights =~ WT, data = ihds)
+
+```
+
+# Inspect data
+Inspect the CS13 variable which is self-reported number of days absent from school each month. Only look at observations for which we have ASER score and the child attends a govt or govt aided school.
+```{r}
+attributes(ihds$CS13)
+# simple tab of CS13 --> note that the max value is 30.
+ihds %>% filter(!is.na(TA8B)) %>%
+  filter(CS4 == 2 | CS4 == 3) %>%
+  group_by(CS13) %>% 
+  count()
+
+# check that this is not missing for kids with ASER results --> looks like there are only a few NAs
+ihds %>% filter(!is.na(TA8B)) %>% summarise(non_na_count = sum(!is.na(CS13)), na_count = sum(is.na(CS13)) )
+```
+
+# Graphical analysis of ASER scores by absence
+Compare average ASER score for different levels of absence for kids attending govt schools. First, graph average score vs absence.  Note that there are relatively few kids with absence over 10 so the area of this graph with absence > 10 should probably be ignored.  Second, create histograms of score for each value of absence up to 10. 
+
+
+```{r}
+temp <- ihds %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
+  filter(CS4 == 2 | CS4 == 3) %>%
+  group_by(CS13) %>% 
+  summarise(ASER_score = weighted.mean(TA8B, WT)) %>% 
+  ungroup() %>%
+  rename(days_absent = CS13)
+ggplot(temp, aes(x = days_absent, y = ASER_score)) + geom_line()
+temp <- ihds %>% mutate(days_absent_capped = ifelse(CS13 > 10, 10, CS13)) %>% 
+  filter(!is.na(TA8B) & !is.na(days_absent_capped))
+# check that this worked
+temp %>% group_by(days_absent_capped) %>% count()
+
+# the graph below shows the relative frequency of different ASER scores by # days absent
+# note that 10 could be 10 or greater as I have replaced all values of CS13>10 with 10
+ggplot(temp, aes(factor(TA8B), group = factor(days_absent_capped))) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count", fill = "gray") + 
+  scale_y_continuous(labels=scales::percent) +
+  ylab("relative frequencies") +
+  xlab("ASER reading score") +
+  facet_grid(~factor(days_absent_capped))
+```
+
+# Regression of ASER score on absence and state vars
+Regress ASER score on age, absence, state, and state x absence.  Then test the joint significance of all the state x absence terms.
+
+```{r}
+# display the label for each of variables
+# vars <- list(df$CS13, df$RO5)
+# lapply(vars, FUN = function(x) attributes(x)$label)
+
+
+# Run a regression of ASER on absence, state dummies, state and absence interactions, and class dummies
+# Restrict observations to rural students (URBAN2011 ==0) and
+# in govt (CS4 == 2) or private aided (CS4 ==3) schools in grades 2 to 5 (TA4 between 2 and 5)
+
+model <- svyglm(formula = ASER4 ~ CS13 + State + CS13*State + Class, 
+       design = subset(ihds_svy, !is.na(TA8B) & (CS4 == 2 | CS4 == 3) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0)))
+
+# test the joint hypothesis that the interaction terms are null
+linearHypothesis(model, matchCoefs(model, "CS13:"), white.adjust = "hc1")
+
+# load the broom package and use it to generate a nice tibble of the coefficients
+coefs <- tidy(model)
+coefs
+```
+
+# Compare state estimates assuming some students more likely to be absent
+We can also more directly calculate the effect of absence on state scores by comparing estimates of state averages with estimates which take into account potential absence on the day of the assessment. To do this, we create a new weight variable which takes into account the probability that the student would be present on the day of the exam. Our new WT variable is...
+
+$$ newweight = oldweight*\frac{30-daysabsentpermonth}{30} $$ 
+As in previous analyses, we only look at students in rural govt or private aided schools.
+```{r}
+state_averages <- ihds %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
+  filter((CS4 == 2 | CS4 == 3) & (URBAN2011 ==0)) %>%
+  mutate(new.weight = WT*(30-CS13)/30) %>%
+  group_by(State) %>% 
+  summarise(full_sample = weighted.mean(ASER4, WT), absence_weighted = weighted.mean(ASER4, new.weight), 
+            diff = full_sample-absence_weighted)
+
+state_averages$full_rank[order(state_averages$full_sample)] <- 1:nrow(state_averages)
+state_averages$absence_rank[order(state_averages$absence_weighted)] <- 1:nrow(state_averages)
+state_averages
+
+# convert state column from factor to character
+state_averages$State <- sub("...$", "", as.character(state_averages$State))
+
+# Create scatter plot of full sample ASER4 score versus absence weighted score for each state
+ggplot(state_averages, aes(x = full_sample, y = absence_weighted, label = State)) +
+  geom_abline(intercept = 0, slope = 1, color="orange")  +
+  geom_point() +
+  geom_label_repel(size = 3) +
+  labs(x = "NAS score", y ="Expected absence-weighted NAS sore", title = "NAS score vs. expected absence-weighted score")
+ggsave("absence_weighted_aser.png", path= figures)
+
+# Export a table with the state rankings
+state_rankings <- state_averages %>% 
+  mutate(State = str_replace(State, "&", "and")) %>%
+  select(State, full_rank, absence_rank) %>% 
+  arrange(full_rank)
+stargazer(state_rankings, type = "html", covariate.labels = c("SL", "State", "Rank - unweighted", "Rank - absence weighted"),summary = FALSE, out = file.path(figures, "state_rankings.doc"))
+
+
+```
+
+
+
+

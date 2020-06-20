@@ -1,0 +1,18 @@
+"0","```r
+
+# Create graphs showing grade 3 reading and math levels over time
+
+temp_ouput <- \"C:/Users/dougj/Dropbox/Education in India/Original research/Learning outcomes data/figures\"
+for (s in c(\"math\", \"reading\")) {
+  df <- subset(states_long, subset = (grade ==3) & (sector == \"all\") & (subject == s))
+  p <- ggplot(df, aes(x = year, y = pct)) + geom_line() +
+  theme(axis.text.x = element_blank())+
+  facet_wrap( ~ state_abbr, nrow = 3) +
+  labs(title = paste(\"Grade 3\", s, \"levels\"))
+  print(p)
+  ggsave(paste(\"state grade 3\", s, \"over time.png\"),path = temp_ouput)
+}
+```"
+"1","Error in grDevices::png(..., res = dpi, units = \"in\") : 
+  unable to start png() device
+"

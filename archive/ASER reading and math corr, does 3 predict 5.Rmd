@@ -1,0 +1,110 @@
+---
+title: "ASER reading and math corr, does 3 predict 5"
+output: html_notebook
+---
+
+This notebook performs additional last minute analysis for the RISE data paper.  The notebook:
+
+* Calculates the correlation between grade 3 ASER reading and math scores
+* Replicates the graph from the private schools paper showing ASER state averages over time
+* Regresses grade 5 scores on grade 3 scores for 2 years earlier and grade 3 scores for same year
+
+
+
+## Setup
+```{r, results='hide'}
+library(tidyverse)
+states <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%20trends%20over%20time.csv")
+``` 
+
+## Graph of state values over time
+
+Replicate the graphs from the private schools paper which show grade 3 and grade 5 reading/math scores over time.
+
+```{r}
+# reshape to long
+# drop states which don't have any data for grade 3. This frees up some space in the graph
+states_long <- states %>% 
+  filter(!is.na(std3_read_std1_pvt) & !is.na(std3_subtract_pvt)) %>% 
+  select(state_abbr, year, starts_with("std")) %>%
+  pivot_longer(cols = starts_with("std"), names_to = "series", values_to = "pct") %>% 
+  mutate(grade = str_extract(series, "\\d"), 
+         sector = str_extract(series, "(govt)|(pvt)|(all)"),
+         subject = str_extract(series, "(read)|(subtract)|(divis)")) %>% 
+  mutate(subject = if_else(subject != "read", "math", "read"))
+
+# 
+df_read <- states_long %>% filter((sector == "all") & (subject == "read"))
+df_math <- states_long %>% filter((sector == "all") & (subject == "math"))
+
+ggplot(df_read, aes(x = year, y = pct, color = grade)) + geom_line() +
+  theme(axis.text.x = element_blank())+
+  facet_wrap( ~ state_abbr, nrow = 3) +
+  labs(title = "Grade 3 and 5 reading levels")
+
+ggplot(df_math, aes(x = year, y = pct, color = grade)) + geom_line() +
+  theme(axis.text.x = element_blank())+
+  facet_wrap( ~ state_abbr, nrow = 3) +
+  labs(title = "Grade 3 and 5 math levels")
+```
+## Calculate correlation
+```{r}
+corrs <- states %>% 
+  group_by(year) %>% 
+  summarise(kendall = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="kendall"),
+            pearson = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="pearson"),
+            spearman = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="spearman"))
+
+corrs %>% summarise_all(mean, na.rm = TRUE)
+```
+
+## Regression
+
+To test whether non-persistent shocks are changes to actual learning or just noise, I perform the following regression:
+
+$$ y_t = \alpha+\beta y_{t-1}+\gamma x_t +\delta[x_{t-2}-x_{t-3}]+\varepsilon_t  $$
+
+Where $y_t$ is grade 5 score and $x_t$ is grade 3 score. $x_t$ serves as a proxy for both persistent and contemporaneous shocks. 
+
+--> but why not just use x_t-2 rather than the delta? --> need to think through this more, but some initial thoughts are that since we look at change from y_t-1 to y_t it could make sense. in addition, if we don't use the delta, it could have positive corr just because it would even out the noise of the other measures.
+
+```{r}
+lags_read <- states %>% 
+  select(year, state_abbr, ends_with("all")) %>% 
+  group_by(state_abbr) %>% 
+  mutate(read3_lag1 = lag(std3_read_std1_all, n = 1, order_by = year),
+        read3_lag2 = lag(std3_read_std1_all, n = 2, order_by = year),
+        read3_lag3 = lag(std3_read_std1_all, n = 3, order_by = year),
+        read3_lead1 = lead(std3_read_std1_all, n = 1, order_by = year),
+        read5_lag1 = lag(std5_read_std2_all, n = 1, order_by = year),
+        persist = (read3_lag1+read3_lead1)/2-read3_lag3,
+        trans = read3_lag2-read3_lag3)
+
+
+lags_math <- states %>% 
+  select(year, state_abbr, ends_with("all")) %>% 
+  group_by(state_abbr) %>% 
+  mutate(math3_lag1 = lag(std3_subtract_all, n = 1, order_by = year),
+        math3_lag2 = lag(std3_subtract_all, n = 2, order_by = year),
+        math3_lag3 = lag(std3_subtract_all, n = 3, order_by = year),
+        math3_lead1 = lead(std3_subtract_all, n = 1, order_by = year),
+        math5_lag1 = lag(std5_divis_all, n = 1, order_by = year),
+        persist = (math3_lag1+math3_lead1)/2-math3_lag3,
+        trans = math3_lag2-math3_lag3)
+
+
+
+# reading regression
+read_fit <- lm(std5_read_std2_all ~ read5_lag1 + std3_read_std1_all + trans, lags_read)
+summary(read_fit)
+
+# reading regression
+read_fit <- lm(std5_divis_all ~ math5_lag1 + std3_subtract_all + trans, lags_math)
+summary(read_fit)
+
+
+```
+
+
+
+

@@ -1,0 +1,7 @@
+"0",""
+"0","# ggsave(paste(subject, ""-"", state_grade,"" - variance_decomposition.png""), width = 5, height = 6 , path = output)"
+"0",""
+"0","df_bar$subject <- subject"
+"0","df_bar$state_grade <- state_grade"
+"0",""
+"0","write_csv(df_bar, file.path(output, ""intermediate"", paste(subject, ""-"", state_grade, ""- bar data.csv"")))"
