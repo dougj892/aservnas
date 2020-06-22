@@ -1,10 +1,9 @@
-"0","file_type <- c(""rho"", ""corr dbl"", ""var deco"", ""bar data"")"
+"0","file_type <- c(""rho"", ""corr dbl"", ""var deco"", ""bar data"", ""alt ests"")"
 "0","tables <- list()"
-"0","for (i in seq_along(file_type)) {"
-"0","  tables[[file_type[i]]] <- tibble(path = list.files(path = int_path, pattern = file_type[i])) %>% "
+"0","for (type in file_type) {"
+"0","  tables[[type]] <- tibble(path = list.files(path = int_path, pattern = type)) %>% "
 "0","  rowwise() %>% "
 "0","  summarise(read_csv(file.path(int_path, path))) "
-"0","  write_csv(tables[[i]], file.path(output, paste(file_type[i], "".csv"")))"
 "0","}"
 "2","Parsed with column specification:
 cols(
@@ -177,4 +176,63 @@ cols(
 )
 "
 "2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"2","Parsed with column specification:
+cols(
+  changes_levels = [31mcol_character()[39m,
+  grade = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  share_persist = [32mcol_double()[39m,
+  share_sampling = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  changes_levels = [31mcol_character()[39m,
+  grade = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  share_persist = [32mcol_double()[39m,
+  share_sampling = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  changes_levels = [31mcol_character()[39m,
+  grade = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  share_persist = [32mcol_double()[39m,
+  share_sampling = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","Parsed with column specification:
+cols(
+  changes_levels = [31mcol_character()[39m,
+  grade = [32mcol_double()[39m,
+  subject = [31mcol_character()[39m,
+  share_persist = [32mcol_double()[39m,
+  share_sampling = [32mcol_double()[39m,
+  share_other = [32mcol_double()[39m
+)
+"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"0","# Reshape the rho data and then save"
+"0","tables[['rho']] %>% "
+"0","  pivot_wider(names_from = c(""subject"", ""state_grade""), values_from = rho) %>% "
+"0","  write_csv(file.path(output, ""rho.csv""))"
+"0",""
+"0","# Fix up the alt ests table so that I can merge it with "
+"0","alt_ests <- tables[[""alt ests""]] %>% "
+"0","  rename(changes_or_levels = changes_levels, state_grade = grade, alt_share_persist = share_persist, alt_share_sampling = share_sampling, alt_share_other = share_other) %>% "
+"0","  mutate(changes_or_levels = str_to_sentence(changes_or_levels), state_or_dist = ""State"")"
+"0",""
+"0",""
+"0","tables[[""var deco""]] %>% "
+"0","  filter(!((state_or_dist == ""District"") & (state_grade == 5))) %>% "
+"0","  left_join(alt_ests) %>% "
+"0","  write_csv(file.path(output, ""var deco.csv""))"
+"2","Joining, by = c(""state_or_dist"", ""changes_or_levels"", ""subject"", ""state_grade"")
 "

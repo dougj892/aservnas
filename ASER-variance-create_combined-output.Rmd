@@ -24,19 +24,48 @@ output <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/
 Import all of the data and save as csv files.
 
 ```{r, results='hide'}
-file_type <- c("rho", "corr dbl", "var deco", "bar data")
+file_type <- c("rho", "corr dbl", "var deco", "bar data", "alt ests")
 tables <- list()
-for (i in seq_along(file_type)) {
-  tables[[file_type[i]]] <- tibble(path = list.files(path = int_path, pattern = file_type[i])) %>% 
+for (type in file_type) {
+  tables[[type]] <- tibble(path = list.files(path = int_path, pattern = type)) %>% 
   rowwise() %>% 
   summarise(read_csv(file.path(int_path, path))) 
-  write_csv(tables[[i]], file.path(output, paste(file_type[i], ".csv")))
 }
 
+# Reshape the rho data and then save
+tables[['rho']] %>% 
+  pivot_wider(names_from = c("subject", "state_grade"), values_from = rho) %>% 
+  write_csv(file.path(output, "rho.csv"))
+
+# Fix up the alt ests table so that I can merge it with 
+alt_ests <- tables[["alt ests"]] %>% 
+  rename(changes_or_levels = changes_levels, state_grade = grade, alt_share_persist = share_persist, alt_share_sampling = share_sampling, alt_share_other = share_other) %>% 
+  mutate(changes_or_levels = str_to_sentence(changes_or_levels), state_or_dist = "State")
+
+
+tables[["var deco"]] %>% 
+  filter(!((state_or_dist == "District") & (state_grade == 5))) %>% 
+  left_join(alt_ests) %>% 
+  write_csv(file.path(output, "var deco.csv"))
 ```
 
-# Create combined var decomposition graph
+# Create combined corr decay and var decomposition graphs
 ```{r}
+rho <- tables[["rho"]] %>% 
+  mutate(sub_grade = paste(subject, state_grade)) %>% 
+  select(-subject, -state_grade) %>% 
+  add_row(sub_grade = "math 3", lag = 0, rho = 1) %>% 
+  add_row(sub_grade = "math 5", lag = 0, rho = 1) %>% 
+  add_row(sub_grade = "reading 3", lag = 0, rho = 1) %>% 
+  add_row(sub_grade = "reading 5", lag = 0, rho = 1)
+
+ggplot(rho, aes(x = lag, y = rho, colour = sub_grade)) + 
+  geom_line() +
+  scale_colour_discrete(name = "Subject and grade") +
+  labs(y = "correlation", title = "Decay in autocorrelation by lag") 
+
+ggsave("Correlation decay.png", width = 6, height = 3 , path = output)
+
 bar_data <- tables[["bar data"]] %>% 
   filter(!((state_or_dist == "District") & (state_grade == 5))) %>% 
   mutate(state_or_dist = paste(state_or_dist, "grade", state_grade))

@@ -19,7 +19,7 @@ Others who would like to run this notebook locally will need to:
 3. Change the paths in the setup chunk
 
 ```{r setup}
-library(tidyverse); library(haven); library(survey); library(ggrepel)
+library(tidyverse); library(haven); library(survey); library(ggrepel); library(ICC)
 ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
 figures <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
 ```
@@ -89,7 +89,7 @@ corrs %>% summarise_all(mean, na.rm = TRUE)
 ```
 
 # Calculate IHDS scores by state. 
-Calculate percentage of students with ASER == 4 (i.e. can read std 2 level text) for rural (URBAN2011 == 0) govt school (CS4 ==2) or private aided (CS4 == 3) students in grades 2 to 5 (there are too few students if we restrict only to grade 3) by state. *warning: this code takes a long time* 
+Calculate percentage of students with ASER (TA8B) == 4 (i.e. can read std 2 level text) for rural (URBAN2011 == 0) govt school (CS4 ==2) or private aided (CS4 == 3) students in grades (TA4) 2 to 5 (there are too few students if we restrict only to grade 3) by state. *warning: this code takes a long time* 
 
 ```{r}
 ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
@@ -130,7 +130,8 @@ ihds_scores$ihds <- round(ihds_scores$ihds, 3)*100
 
 ```
 
-# Correlation between IHDS and ASER / NAS
+# Correlation between IHDS and ASER / NAS and ASER ICC
+
 
 ```{r}
 scores <- aser_nas %>% select(State, ASER_2018, NAS) %>% 
@@ -153,6 +154,8 @@ cor.test(temp$NAS,temp$ihds, use = "pairwise.complete.obs", method = "spearman")
 cor.test(temp$ASER_2018,temp$ihds, use = "pairwise.complete.obs", method = "spearman")
 cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "spearman")
 
+# Calculate ICC
+ICCest(x = psu_expanded, y = TA8B, data = subset(ihds, subset = !is.na(TA8B) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0)))
 ```
 
 # Graph of ASER, NAS, and IHDS

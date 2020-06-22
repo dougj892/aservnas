@@ -54,8 +54,8 @@ states <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/m
 
   
 ##### IMPORTANT: SET SUBJECT TO BE USED FOR THE ENTIRE ANALYSIS HERE ### 
-subject <- "math"
-state_grade <- 5
+subject <- "reading"
+state_grade <- 3
 
 if (subject == "math") {
   dists$score <- dists$std35_subtraction_and_up
@@ -311,6 +311,28 @@ Since the correlation of current levels and twice lags is not 0, we don't use th
 * $\sigma^2_{\varepsilon} = -corr(\Delta y_t , \Delta y_{t-1} )* Var(\Delta y_t ) = `r var_state_epsilon`$
 * $\sigma^2_y = `r var_state_levels`$ 
 * $\sigma^2_{sampling} = `r var_state_sampling`$
+
+```{r}
+# Generate estimates for the
+change_pct_pers <- 1+2*corr_state_deltas
+change_pct_samp <- 2*var_state_sampling/var_state_deltas
+change_pct_other <- 1-change_pct_pers-change_pct_samp
+
+level_pct_pers <- 1+corr_state_deltas*var_state_deltas/var_state_levels
+level_pct_samp <- var_state_sampling/var_state_levels
+level_pct_other <- 1-level_pct_pers-level_pct_samp
+
+# save consolidated method 1 estimates as a csv
+meth1_df <- tribble(
+  ~changes_levels, ~grade, ~subject, ~share_persist, ~share_sampling, ~share_other,
+  "changes", state_grade, subject, change_pct_pers, change_pct_samp, change_pct_other,
+  "levels", state_grade, subject, level_pct_pers, level_pct_samp, level_pct_other,
+)
+write_csv(meth1_df, file.path(output, "intermediate", paste(subject, state_grade, " alt ests.csv")))
+
+
+```
+
 
 # State analysis - method 2
 

@@ -1,6 +1,0 @@
-"0","var_state_sampling <- dists %>% filter(year ==2008) %>%"
-"0","  count(State) %>%"
-"0","  mutate(sampling_var = var_dist_sampling/n) %>%"
-"0","  summarize(mean_sampling = mean(sampling_var)) %>% .$mean_sampling"
-"0",""
-"0","  "

@@ -1,0 +1,8 @@
+"0","ind_file <- file.path(ihds_ind_dir, ""36151-0001-Data.dta"")"
+"0","# read in just those variables that i need"
+"0","# this is much faster than reading in everything and then selecting"
+"0","ihds <- read_dta(ind_file, col_select = c(STATEID, DISTID, PSUID, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, URBAN2011, starts_with(""CS""), starts_with(""TA""), starts_with(""ED"")))"
+"0","ihds <- ihds %>% mutate(psu_expanded = paste(STATEID, DISTID, PSUID, sep =""-""), hh_expanded = paste(STATEID, DISTID, PSUID, HHID, HHSPLITID, sep =""-""))"
+"0",""
+"0","# confirm that TA4 (class) is not NA if TA8B is not NA --> there are only 38 instances when TA8B is not NA but TA4 is NA"
+"0","ihds %>% filter(!is.na(TA8B)) %>% count(TA4)"

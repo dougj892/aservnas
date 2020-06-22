@@ -1,8 +1,0 @@
-"0","corrs <- states %>% "
-"0","  group_by(year) %>% "
-"0","  summarise(kendall = cor(std3_read_std1_all, std3_subtract_all, use=""pairwise.complete.obs"", method=""kendall""),"
-"0","            pearson = cor(std3_read_std1_all, std3_subtract_all, use=""pairwise.complete.obs"", method=""pearson""),"
-"0","            spearman = cor(std3_read_std1_all, std3_subtract_all, use=""pairwise.complete.obs"", method=""spearman""))"
-"2","`summarise()` ungrouping output (override with `.groups` argument)
-"
-"0","corrs %>% summarise_all(mean, na.rm = TRUE)"
