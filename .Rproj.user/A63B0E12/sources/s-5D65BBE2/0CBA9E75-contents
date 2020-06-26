@@ -1,0 +1,220 @@
+---
+title: "Comparison of ASER, NAS, and IHDS"
+theme: yeti
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+
+---
+
+This notebook performs calculations and creates graphs for the section "Comparison of ASER, NAS, and IHDS" in the paper "Assessing the Assessments: Taking Stock of Learning Outcomes Data in India."
+
+Others who would like to run this notebook locally will need to:
+
+1. Install the relevant R packages
+2. Download the stata version of the individual level dataset from IHDS round 2. This dataset can be downloaded from [this page](https://www.icpsr.umich.edu/web/ICPSR/studies/36151?q=india+human+development+survey&searchSource=icpsr-landing#). The name of the dataset should be "36151-0001-Data.dta".
+3. Change the paths in the setup chunk
+
+```{r setup}
+library(tidyverse); library(haven); library(survey); library(ggrepel); library(ICC)
+ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
+figures <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
+```
+
+# Graphs of state rankings on ASER vs NAS
+
+```{r}
+# import ASER and NAS data
+aser_nas <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%202018%20and%20NAS%202017%20govt%20school%20grade%203%20reading.csv")
+
+# Create graph
+ggplot(data = aser_nas,aes(x=aser_rank,y=nas_rank,label= state_abbr)) +
+  geom_abline(intercept = 0, slope = 1, color="orange")  +
+  geom_point(color="darkblue")  +
+  theme_bw() + 
+  labs(title="State Rankings Based on Language Results for Std III Students (Rural)", x = "Rank in ASER (2018)", y = "Rank in NAS (2017)") + 
+   scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor = element_blank(), panel.grid.major = element_line(colour = "gray",size=0.1)) + 
+  geom_label_repel() 
+
+# Save graph
+ggsave("aser_nas_lang_ranking.png", width = 9, height = 6 , path = figures)
+
+```
+
+# ASER and NAS vs NSDP
+Given the huge variation in state GDP per capita, one would expect that there would be some correlation in NSDP per capita and learning outcomes. Surprisingly, this is not the case.
+
+```{r}
+# Import NSDP data
+nsdp <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/state%20GDP%20per%20capita.csv")
+
+# Merge NSDP data with ASER and NAS data
+aser_nas_nsdp <- aser_nas %>% left_join(nsdp, by = "State")
+
+# Check that there are no states which didn't match
+print(paste("Number of unmatched states", sum(is.na(aser_nas_nsdp$`NSDP per capita`))))
+
+# Create a ranking for NSDP
+aser_nas_nsdp$gdp_rank <- NA
+aser_nas_nsdp$gdp_rank[order(aser_nas_nsdp$`NSDP per capita`, decreasing = TRUE)] <- 1:nrow(aser_nas_nsdp)
+
+# Calculate pairwise correlations for the 3 datasets
+temp <- aser_nas_nsdp %>% select(ASER_2018, 'NSDP per capita', NAS)
+print("Pearson (regular) correlation:")
+cor(temp, method = "pearson", use = "pairwise.complete.obs")
+print("Spearman (rank) correlation")
+cor(temp, method = "spearman", use = "pairwise.complete.obs")
+
+# Calculate correlations with p-values for null rho = 0
+cor.test(temp$ASER_2018,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "pearson")
+cor.test(temp$ASER_2018,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "spearman")
+cor.test(temp$NAS,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "pearson")
+cor.test(temp$NAS,temp$`NSDP per capita`, use = "pairwise.complete.obs", method = "spearman")
+
+```
+# Correlation between ASER grade 3 reading and math
+
+```{r}
+aser_trends <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/ASER%20trends%20over%20time.csv")
+
+corrs <- aser_trends %>% 
+  group_by(year) %>% 
+  summarise(pearson = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="pearson"),
+            spearman = cor(std3_read_std1_all, std3_subtract_all, use="pairwise.complete.obs", method="spearman"))
+
+corrs %>% summarise_all(mean, na.rm = TRUE)
+```
+
+# Calculate IHDS scores by state. 
+Calculate percentage of students with ASER (TA8B) == 4 (i.e. can read std 2 level text) for rural (URBAN2011 == 0) govt school (CS4 ==2) or private aided (CS4 == 3) students in grades (TA4) 2 to 5 (there are too few students if we restrict only to grade 3) by state. *warning: this code takes a long time* 
+
+```{r}
+ind_file <- file.path(ihds_ind_dir, "36151-0001-Data.dta")
+# read in just those variables that i need
+# this is much faster than reading in everything and then selecting
+ihds <- read_dta(ind_file, col_select = c(STATEID, DISTID, PSUID, HHID, HHSPLITID, PERSONID, IDPSU, WT, RO3, RO7, RO5, URBAN2011, starts_with("CS"), starts_with("TA"), starts_with("ED")))
+ihds <- ihds %>% mutate(psu_expanded = paste(STATEID, DISTID, PSUID, sep ="-"), hh_expanded = paste(STATEID, DISTID, PSUID, HHID, HHSPLITID, sep ="-"))
+
+# confirm that TA4 (class) is not NA if TA8B is not NA --> there are only 38 instances when TA8B is not NA but TA4 is NA
+ihds %>% filter(!is.na(TA8B)) %>% count(TA4)
+
+# drop the one row with missing values for weights
+ihds <- ihds %>% filter(!is.na(WT))
+
+# create variable for ASER at level 4
+ihds <- ihds %>% mutate(ASER4 = (TA8B ==4)) %>% mutate(State = as_factor(STATEID))
+```
+
+``` {r}
+# use the survey package to set the survey design.  I will use the ihds_svy object to calculate CIs
+ihds_svy <- svydesign(id =~ psu_expanded + hh_expanded, weights =~ WT, data = ihds)
+
+# use statsby to get the % of selected kids who achieve level 4 on ASER reading by state
+# note that I am not sure if subsetting within statsby is kosher, but the standard errors should be ok 
+# more or less ok regardless
+ihds_scores <- svyby(~ASER4, ~State, subset(ihds_svy, !is.na(TA8B) & (CS4 == 2 | CS4 == 3) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0)), svymean, na.rm=TRUE)
+
+# convert to a tibble
+ihds_scores <- as.tibble(ihds_scores) %>% select(State, ASER4TRUE, se.ASER4TRUE) %>% rename(ihds = ASER4TRUE, ihds_se = se.ASER4TRUE)
+
+# Unsure, but I think this gets rid of the space and number at the end of the state name
+ihds_scores$State <- sub("...$", "", ihds_scores$State)
+
+# replace the standard errors with NA is SE == 0
+ihds_scores$ihds[ihds_scores$ihds_se == 0] <- NA
+
+# replace Orissa with Odisha in state 
+ihds_scores$State[ihds_scores$State == "Orissa"] <- "Odisha"
+ihds_scores$ihds <- round(ihds_scores$ihds, 3)*100
+
+```
+
+# Correlation between IHDS and ASER / NAS
+
+```{r}
+scores <- aser_nas %>% select(State, ASER_2018, NAS) %>% 
+  full_join(ihds_scores, by = "State")
+
+# drop if IHDS_ASER is NA
+# scores <- scores %>% filter(!is.na(IHDS_ASER)) %>% arrange(ASER) %>% select(State, ASER, IHDS_ASER, NAS, obs)
+
+# calculate correlation matrix --> while there are a few outliers, overall the ASER data and IHDS data match Ok
+temp <- scores %>% select(ASER_2018, ihds, NAS)
+cor(temp, method = "pearson", use = "pairwise.complete.obs")
+cor(temp, method = "spearman", use = "pairwise.complete.obs")
+
+# Same as above, but with p-values
+cor.test(temp$NAS,temp$ihds, use = "pairwise.complete.obs", method = "pearson")
+cor.test(temp$ASER_2018,temp$ihds, use = "pairwise.complete.obs", method = "pearson")
+cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "pearson")
+
+cor.test(temp$NAS,temp$ihds, use = "pairwise.complete.obs", method = "spearman")
+cor.test(temp$ASER_2018,temp$ihds, use = "pairwise.complete.obs", method = "spearman")
+cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "spearman")
+```
+
+# Calculate ASER ICC
+
+Calculate ASER ICC using the ICCest function from the ICC package as well manually using the output from the ANOVA table. (Note that the manual method assumes constant number of children per village which is not accurate but yields a similar result.)
+
+```{r}
+# Calculate ICC
+icc_df <- ihds %>% 
+  filter(!is.na(TA8B) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0))
+# ICCest(x = psu_expanded, y = TA8B, data = icc_df)
+
+# Verify this by calculating the ICC manually from the ANOVA table
+fit <- lm(TA8B~psu_expanded, data = icc_df)
+ms_between <- anova_est$meansq[anova_est$term == "psu_expanded"]
+ms_resid <- anova_est$meansq[anova_est$term == "Residuals"]
+
+# get average number of children per village
+k <- icc_df %>% count(psu_expanded) %>% summarize(mean(n))
+k <- k[[1,1]]
+
+icc <- (ms_between - ms_resid)/(ms_between+(k-1)*ms_resid)
+print(icc)
+```
+
+# Graph of ASER, NAS, and IHDS
+
+
+```{r}
+# treat the SE as just another score
+scores.long2 <- scores  %>%
+  filter(!is.na(ASER_2018) & !is.na(NAS)) %>% 
+  mutate(IHDS = paste(ihds,ihds_se, sep ="-")) %>% 
+  select(State, ASER_2018, NAS, IHDS) %>% 
+  gather(Assessment, avg_score, -State) %>%
+  separate(avg_score, sep = "-", into = c("avg_score","se"))
+
+# convert avg_score and se back to numeric 
+scores.long2 <- scores.long2  %>%
+  mutate(avg_score = as.numeric(avg_score), se = as.numeric(se))
+
+# multiply se 
+scores.long2 <- scores.long2  %>%
+  mutate(se = 100*se)
+
+
+# create y_min and y_max
+m <- qnorm(1-.05/2)
+scores.long2 <- scores.long2  %>%
+  mutate(ymin = avg_score-m*se, ymax = avg_score+m*se) %>%
+  mutate(ymin = ifelse(ymin <0, 0, ymin))
+
+
+ggplot(data = scores.long2, aes(x= reorder(State, avg_score),y=avg_score, fill= Assessment)) + 
+  geom_bar(stat = "identity", position = position_dodge(width=.8)) + 
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = .1) + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_manual(values = c("lightblue", "blue", "darkblue"))+
+  labs(y = "Average score", x = "", title = "ASER, NAS, and IHDS", caption = "Bars on IHDS estimates show 95% confidence intervals.")
+ggsave("aser_nas_ihds_values.png", width = 9, height = 6 , path = figures)
+```
+
+
+

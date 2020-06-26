@@ -44,7 +44,7 @@ Most of the analyses in this notebook are based on the ASER trends over time rep
 * Proportion rural 5th graders who do division text by govt / private
 
 ```{r, results='hide', messages = FALSE}
-library(tidyverse)
+library(tidyverse); library(broom)
 output <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
 
 dists <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/master/aser_district_all_6.csv")
@@ -54,7 +54,7 @@ states <- read_csv("https://raw.githubusercontent.com/dougj892/public-datasets/m
 
   
 ##### IMPORTANT: SET SUBJECT TO BE USED FOR THE ENTIRE ANALYSIS HERE ### 
-subject <- "reading"
+subject <- "math"
 state_grade <- 3
 
 if (subject == "math") {
@@ -77,7 +77,7 @@ if (subject == "math") {
 
 
 ### IMPORTANT -- THIS IS WHERE I SPECIFY DISTRICT SAMPLING VARIANCE ###
-var_dist_sampling <- .0013
+var_dist_sampling <- .0016
 
 ```
 
@@ -112,49 +112,34 @@ ggsave("aser math over time.png", path = output)
 
 ```
 
-## Regress grade 5 on lagged grade 3 scores.
+## Test for cohort effects
 
-To test whether non-persistent shocks are changes to actual learning or just noise, I perform the following regression:
-
-$$ y_t = \alpha+\beta y_{t-1}+\gamma x_t +\delta[x_{t-2}-x_{t-3}]+\varepsilon_t  $$
-
-Where $y_t$ is grade 5 score and $x_t$ is grade 3 score. $x_t$ serves as a proxy for both persistent and contemporaneous shocks. 
-
+To test for cohort effects, I regress change in grade 5 scores on twice lagged change in grade 3 scores.
 
 
 ```{r}
-lags_read <- states %>% 
+# Create dataset with appropriate lags
+lags <- states %>% 
   group_by(state_abbr) %>% 
-  mutate(read3_lag1 = lag(std3_read_std1_all, n = 1, order_by = year),
-        read3_lag2 = lag(std3_read_std1_all, n = 2, order_by = year),
+  mutate(read3_lag2 = lag(std3_read_std1_all, n = 2, order_by = year),
         read3_lag3 = lag(std3_read_std1_all, n = 3, order_by = year),
-        read3_lead1 = lead(std3_read_std1_all, n = 1, order_by = year),
         read5_lag1 = lag(std5_read_std2_all, n = 1, order_by = year),
-        persist = (read3_lag1+read3_lead1)/2-read3_lag3,
-        trans = read3_lag2-read3_lag3)
-
-lags_math <- states %>% 
-  select(year, state_abbr, ends_with("all")) %>% 
-  group_by(state_abbr) %>% 
-  mutate(math3_lag1 = lag(std3_subtract_all, n = 1, order_by = year),
+        delta_read3_lag2 = read3_lag2-read3_lag3,
+        delta_read5 = std5_read_std2_all-read5_lag1,
         math3_lag2 = lag(std3_subtract_all, n = 2, order_by = year),
         math3_lag3 = lag(std3_subtract_all, n = 3, order_by = year),
-        math3_lead1 = lead(std3_subtract_all, n = 1, order_by = year),
         math5_lag1 = lag(std5_divis_all, n = 1, order_by = year),
-        persist = (math3_lag1+math3_lead1)/2-math3_lag3,
-        trans = math3_lag2-math3_lag3)
+        delta_math3_lag2 = math3_lag2 - math3_lag3,
+        delta_math5 =std5_divis_all-math5_lag1) 
 
-# reading regression
-read_fit <- lm(std5_read_std2_all ~ read5_lag1 + std3_read_std1_all + trans, lags_read)
-summary(read_fit)
+fit_read <- lm(delta_read5 ~  delta_read3_lag2 - 1, lags)
+summary(fit_read)
 
-# reading regression
-read_fit <- lm(std5_divis_all ~ math5_lag1 + std3_subtract_all + trans, lags_math)
-summary(read_fit)
+fit_math <- lm(delta_math5 ~ delta_math3_lag2 - 1, lags)
+summary(fit_math)
 
-
+write_csv(rbind(tidy(fit_read), tidy(fit_math)), file.path(output, "cohort analysis.csv"))
 ```
-
 
 
 # District analysis
@@ -403,7 +388,7 @@ We now have all the inputs we need to replicate figure 4 from Kane and Staiger
 df_bar <- tibble(state_or_dist = rep(c("State","District"),each =6), 
                  changes_or_levels =rep(rep(c("Changes","Levels"), each =3), times= 2),
                  bar_part = factor(rep(c("Persistent","Transitory sampling", "Transitory other"),4), levels = c("Transitory other","Transitory sampling", "Persistent")),
-                 value = rep(.001,12)
+                 value = rep(.0016,12)
                  )
 # Update the values for the district changes bar
 df_bar$value[(df_bar$state_or_dist == "District") & (df_bar$changes_or_levels == "Changes") & (df_bar$bar_part == "Persistent")] <- var_dist_deltas - 2*var_dist_epsilon

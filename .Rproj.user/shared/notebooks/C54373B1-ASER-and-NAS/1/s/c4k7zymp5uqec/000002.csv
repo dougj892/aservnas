@@ -1,0 +1,2 @@
+"0","# use the survey package to set the survey design.  I will use the ihds_svy object to calculate CIs"
+"0","ihds_svy <- svydesign(id =~ psu_expanded + hh_expanded, weights =~ WT, data = ihds)"

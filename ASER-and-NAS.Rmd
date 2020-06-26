@@ -106,7 +106,9 @@ ihds <- ihds %>% filter(!is.na(WT))
 
 # create variable for ASER at level 4
 ihds <- ihds %>% mutate(ASER4 = (TA8B ==4)) %>% mutate(State = as_factor(STATEID))
+```
 
+``` {r}
 # use the survey package to set the survey design.  I will use the ihds_svy object to calculate CIs
 ihds_svy <- svydesign(id =~ psu_expanded + hh_expanded, weights =~ WT, data = ihds)
 
@@ -130,8 +132,7 @@ ihds_scores$ihds <- round(ihds_scores$ihds, 3)*100
 
 ```
 
-# Correlation between IHDS and ASER / NAS and ASER ICC
-
+# Correlation between IHDS and ASER / NAS
 
 ```{r}
 scores <- aser_nas %>% select(State, ASER_2018, NAS) %>% 
@@ -153,9 +154,29 @@ cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "pears
 cor.test(temp$NAS,temp$ihds, use = "pairwise.complete.obs", method = "spearman")
 cor.test(temp$ASER_2018,temp$ihds, use = "pairwise.complete.obs", method = "spearman")
 cor.test(temp$NAS,temp$ASER_2018, use = "pairwise.complete.obs", method = "spearman")
+```
 
+# Calculate ASER ICC
+
+Calculate ASER ICC using the ICCest function from the ICC package as well manually using the output from the ANOVA table. (Note that the manual method assumes constant number of children per village which is not accurate but yields a similar result.)
+
+```{r}
 # Calculate ICC
-ICCest(x = psu_expanded, y = TA8B, data = subset(ihds, subset = !is.na(TA8B) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0)))
+icc_df <- ihds %>% 
+  filter(!is.na(TA8B) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0))
+# ICCest(x = psu_expanded, y = TA8B, data = icc_df)
+
+# Verify this by calculating the ICC manually from the ANOVA table
+fit <- lm(TA8B~psu_expanded, data = icc_df)
+ms_between <- anova_est$meansq[anova_est$term == "psu_expanded"]
+ms_resid <- anova_est$meansq[anova_est$term == "Residuals"]
+
+# get average number of children per village
+k <- icc_df %>% count(psu_expanded) %>% summarize(mean(n))
+k <- k[[1,1]]
+
+icc <- (ms_between - ms_resid)/(ms_between+(k-1)*ms_resid)
+print(icc)
 ```
 
 # Graph of ASER, NAS, and IHDS

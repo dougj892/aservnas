@@ -1,4 +1,0 @@
-"0","```r
-
-# ggsave(file.path(path, \"ct response by infra.png\"), width = 8.5, height = 7, units = \"in\")
-```"

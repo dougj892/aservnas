@@ -1,0 +1,27 @@
+"0","library(tidyverse); library(haven); library(survey); library(ggrepel); library(ICC)"
+"2","Loading required package: grid
+"
+"2","Loading required package: Matrix
+"
+"2","
+Attaching package: ‘Matrix’
+
+"
+"2","The following objects are masked from ‘package:tidyr’:
+
+    expand, pack, unpack
+
+"
+"2","Loading required package: survival
+"
+"2","
+Attaching package: ‘survey’
+
+"
+"2","The following object is masked from ‘package:graphics’:
+
+    dotchart
+
+"
+"0","ihds_ind_dir <- ""C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"""
+"0","figures <- ""C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"""
