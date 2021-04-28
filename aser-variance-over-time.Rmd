@@ -100,14 +100,12 @@ df_math <- states_long %>% filter((sector == "all") & (subject == "math"))
 
 ggplot(df_read, aes(x = year, y = pct, color = grade)) + geom_line() +
   theme(axis.text.x = element_blank())+
-  facet_wrap( ~ state_abbr, nrow = 3) +
-  labs(title = "Grade 3 and 5 reading levels")
+  facet_wrap( ~ state_abbr, nrow = 3)
 ggsave("aser reading over time.png", path = output)
 
 ggplot(df_math, aes(x = year, y = pct, color = grade)) + geom_line() +
   theme(axis.text.x = element_blank())+
-  facet_wrap( ~ state_abbr, nrow = 3) +
-  labs(title = "Grade 3 and 5 math levels")
+  facet_wrap( ~ state_abbr, nrow = 3)
 ggsave("aser math over time.png", path = output)
 
 ```

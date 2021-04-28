@@ -118,12 +118,12 @@ coefs
 # Compare state estimates assuming some students more likely to be absent
 We can also more directly calculate the effect of absence on state scores by comparing estimates of state averages with estimates which take into account potential absence on the day of the assessment. To do this, we create a new weight variable which takes into account the probability that the student would be present on the day of the exam. Our new WT variable is...
 
-$$ newweight = oldweight*\frac{30-daysabsentpermonth}{30} $$ 
+$$ newweight = oldweight*\frac{25-daysabsentpermonth}{25} $$ 
 As in previous analyses, we only look at students in rural govt or private aided schools.
 ```{r}
 state_averages <- ihds %>% filter(!is.na(TA8B) & !is.na(CS13)) %>% 
   filter((CS4 == 2 | CS4 == 3) & (URBAN2011 ==0)) %>%
-  mutate(new.weight = WT*(30-CS13)/30) %>%
+  mutate(new.weight = WT*(25-CS13)/25) %>%
   group_by(State) %>% 
   summarise(full_sample = weighted.mean(ASER4, WT), absence_weighted = weighted.mean(ASER4, new.weight), 
             diff = full_sample-absence_weighted)
@@ -135,12 +135,18 @@ state_averages
 # convert state column from factor to character
 state_averages$State <- sub("...$", "", as.character(state_averages$State))
 
+# Create variable for difference in rank
+state_averages <- state_averages %>% mutate(rank_diff = factor(full_rank - absence_rank))
+
 # Create scatter plot of full sample ASER4 score versus absence weighted score for each state
-ggplot(state_averages, aes(x = full_sample, y = absence_weighted, label = State)) +
+ggplot(state_averages, aes(x = full_sample, y = absence_weighted, label = State, colour = rank_diff)) +
   geom_abline(intercept = 0, slope = 1, color="orange")  +
-  geom_point() +
   geom_label_repel(size = 3) +
-  labs(x = "NAS score", y ="Expected absence-weighted NAS sore", title = "NAS score vs. expected absence-weighted score")
+  geom_point() +
+  scale_colour_manual(values = c("darkred", "red", "black", "blue", "darkblue")) +
+  guides(colour = guide_legend(override.aes = list(size = 5)))+
+  # theme(legenid.key=element_rect(fill = "black")) +
+  labs(x = "IHDS score", y ="Expected absence-weighted IHDS score", colour = "Change in rank")
 ggsave("absence_weighted_aser.png", path= figures)
 
 # Export a table with the state rankings

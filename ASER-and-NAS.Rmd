@@ -19,7 +19,7 @@ Others who would like to run this notebook locally will need to:
 3. Change the paths in the setup chunk
 
 ```{r setup}
-library(tidyverse); library(haven); library(survey); library(ggrepel); library(ICC)
+library(tidyverse); library(haven); library(survey); library(ggrepel); library(broom); library(ICC)
 ihds_ind_dir <- "C:/Users/dougj/Documents/Data/IHDS/IHDS 2012/DS0001"
 figures <- "C:/Users/dougj/Dropbox/Education in India/Original research/aservnas/figures"
 ```
@@ -35,7 +35,7 @@ ggplot(data = aser_nas,aes(x=aser_rank,y=nas_rank,label= state_abbr)) +
   geom_abline(intercept = 0, slope = 1, color="orange")  +
   geom_point(color="darkblue")  +
   theme_bw() + 
-  labs(title="State Rankings Based on Language Results for Std III Students (Rural)", x = "Rank in ASER (2018)", y = "Rank in NAS (2017)") + 
+  labs(x = "Rank in ASER (2018)", y = "Rank in NAS (2017)") + 
    scale_y_continuous(breaks=c(1:28)) + scale_x_continuous(breaks=c(1:28))  + theme(panel.grid.minor = element_blank(), panel.grid.major = element_line(colour = "gray",size=0.1)) + 
   geom_label_repel() 
 
@@ -164,10 +164,12 @@ Calculate ASER ICC using the ICCest function from the ICC package as well manual
 # Calculate ICC
 icc_df <- ihds %>% 
   filter(!is.na(TA8B) & (TA4 >= 2 & TA4 <= 5) & (URBAN2011 == 0))
-# ICCest(x = psu_expanded, y = TA8B, data = icc_df)
+
+ICCest(x = psu_expanded, y = TA8B, data = icc_df)
 
 # Verify this by calculating the ICC manually from the ANOVA table
 fit <- lm(TA8B~psu_expanded, data = icc_df)
+anova_est <- tidy(anova(fit))
 ms_between <- anova_est$meansq[anova_est$term == "psu_expanded"]
 ms_resid <- anova_est$meansq[anova_est$term == "Residuals"]
 
@@ -211,8 +213,8 @@ ggplot(data = scores.long2, aes(x= reorder(State, avg_score),y=avg_score, fill= 
   geom_bar(stat = "identity", position = position_dodge(width=.8)) + 
   geom_errorbar(aes(ymin = ymin, ymax = ymax), width = .1) + 
   theme(axis.text.x = element_text(angle=90)) + 
-  scale_fill_manual(values = c("lightblue", "blue", "darkblue"))+
-  labs(y = "Average score", x = "", title = "ASER, NAS, and IHDS", caption = "Bars on IHDS estimates show 95% confidence intervals.")
+  scale_fill_manual(values = c("#003f5c", "#bc5090", "#ffa600"), labels = c("ASER", "IHDS", "NAS"))+
+  labs(y = "Share children", x = "", caption = "Bars on IHDS estimates show 95% confidence intervals.")
 ggsave("aser_nas_ihds_values.png", width = 9, height = 6 , path = figures)
 ```
 

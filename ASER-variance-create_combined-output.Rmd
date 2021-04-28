@@ -62,8 +62,7 @@ rho <- tables[["rho"]] %>%
 ggplot(rho, aes(x = lag, y = rho, colour = sub_grade)) + 
   geom_line() +
   scale_colour_discrete(name = "Subject and grade") +
-  labs(y = "correlation", title = "Decay in autocorrelation by lag") 
-
+  labs(y = "correlation") 
 ggsave("Correlation decay.png", width = 6, height = 3 , path = output)
 
 bar_data <- tables[["bar data"]] %>% 
